@@ -1,0 +1,15 @@
+-- Nivas — local dev seed data.
+--
+-- Deliberately empty as of Task 1.2. This file exists now (rather than
+-- appearing later) because supabase/config.toml's [db.seed] block already
+-- points `sql_paths` at it, and that block runs on every `supabase db
+-- reset` — an empty-but-present file (comments only, valid SQL) keeps local
+-- dev working between now and the task that actually populates it.
+--
+-- Real content lands in two places, not this one file growing indefinitely:
+--   - Phase 2.1 (0003_teams_categories_sla.sql): the documented starting-point
+--     SLA defaults (Critical 4h / High 24h / Medium 72h / Low 7 days).
+--   - Pre-Phase's real category/team list, once the pilot RWA interview
+--     happens — seeded per-community, not hardcoded globally (§2.1) — wired
+--     up through the pilot-onboarding runbook (Phase 12.2), not dumped here
+--     as global fake data.
