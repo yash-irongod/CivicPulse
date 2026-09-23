@@ -1,25 +1,18 @@
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/*
+ * §7.2/§7.3 — Paper canvas, Ink text, the IBM Plex stack, for everything.
+ * Pulled entirely through Tailwind's bg-paper/text-ink/font-sans
+ * utilities (themselves sourced from lib/design/tokens.ts via
+ * tailwind.config.ts) rather than a second set of hardcoded hex values
+ * here — one source of truth for these colors, not two.
+ *
+ * The default create-next-app light/dark --background/--foreground pair
+ * this replaced had no connection to that system (and no dark-mode
+ * variant is specified anywhere in §7 to replace it with) — removed
+ * rather than left as dead, contradictory scaffolding.
+ */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-paper text-ink font-sans;
 }

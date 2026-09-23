@@ -9,26 +9,33 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write .",
+    "test": "vitest run",
     "prepare": "husky"
   },
   "dependencies": {
+    "idb": "8.0.3",
     "next": "15.5.26",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@serwist/turbopack": "9.5.12",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "0.28.2",
     "eslint": "^9",
     "eslint-config-next": "15.5.26",
     "eslint-config-prettier": "^10.1.8",
+    "fake-indexeddb": "6.2.5",
     "husky": "^9.1.7",
     "lint-staged": "^17.5.1",
     "prettier": "^3.9.8",
+    "serwist": "9.5.12",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "3.2.7"
   }
 }
