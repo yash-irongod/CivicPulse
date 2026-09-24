@@ -200,12 +200,21 @@ max_indexes = 5
 [auth]
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
-# in emails.
+# in emails. Task 3.1: must match NEXT_PUBLIC_SITE_URL in .env.local.
 site_url = "http://127.0.0.1:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
-# A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+# URLs Auth may redirect to after a magic link is opened. Task 3.1: the resident claim flow sends
+# emailRedirectTo = <site>/auth/callback?claim=<token>, so the callback path (with its query
+# string) must be allowed. The CLI default here was "https://127.0.0.1:3000" (https, no path),
+# which would reject that link on a plain-http local server; replaced with both local hostnames.
+# Production: add the deployed origin, e.g. https://<your-domain>/auth/callback**, under
+# Authentication > URL Configuration in the Supabase dashboard (this file is local-only), and
+# set that project's Site URL there too.
+additional_redirect_urls = [
+  "http://127.0.0.1:3000/auth/callback**",
+  "http://localhost:3000/auth/callback**",
+]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -217,7 +226,10 @@ enable_refresh_token_rotation = true
 # Allows refresh tokens to be reused after expiry, up to the specified interval in seconds.
 # Requires enable_refresh_token_rotation = true.
 refresh_token_reuse_interval = 10
-# Allow/disallow new user signups to your project.
+# Allow/disallow new user signups to your project. Task 3.1: must stay true. The claim flow's
+# signInWithOtp({ shouldCreateUser: true }) creates the auth user on first magic-link request, and
+# the no-email path creates its synthetic user with the admin API. A bare auth user with no roster
+# claim gets no `memberships` row, so RLS shows it nothing.
 enable_signup = true
 # Allow/disallow anonymous sign-ins to your project.
 enable_anonymous_sign_ins = false
@@ -262,7 +274,7 @@ web3 = 30
 # secret = ""
 
 [auth.email]
-# Allow/disallow new user signups via email to your project.
+# Allow/disallow new user signups via email to your project. Must stay true (see [auth] above).
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
