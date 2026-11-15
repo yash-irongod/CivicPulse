@@ -56,7 +56,19 @@ export function logEvent(
     at: new Date().toISOString(),
     ...fields,
   });
-  if (level === "error") console.error(line);
-  else if (level === "warn") console.warn(line);
-  else console.info(line);
+  if (level === "error") {
+    console.error(line);
+    if (typeof globalThis !== "undefined") {
+      const g = globalThis as unknown as {
+        Sentry?: { captureMessage?: (msg: string, context?: unknown) => void };
+      };
+      if (typeof g.Sentry?.captureMessage === "function") {
+        g.Sentry.captureMessage(`[${event}] ${line}`, { extra: fields });
+      }
+    }
+  } else if (level === "warn") {
+    console.warn(line);
+  } else {
+    console.info(line);
+  }
 }

@@ -1,0 +1,392 @@
+// In-memory demo dataset and store for local evaluation (§7.4).
+// Pre-populated with realistic society data from Greenfield Heights RWA.
+
+export const DEMO_COMMUNITY_ID = "00000000-0000-0000-0000-000000000001";
+export const DEMO_COMMUNITY_NAME = "Greenfield Heights RWA (Demo)";
+
+export interface DemoCategory {
+  id: string;
+  name: string;
+}
+
+export const DEMO_CATEGORIES: DemoCategory[] = [
+  { id: "cat-plumbing", name: "Plumbing & Water" },
+  { id: "cat-electrical", name: "Electrical Infrastructure" },
+  { id: "cat-elevator", name: "Elevator / Lift" },
+  { id: "cat-security", name: "Security & Access" },
+  { id: "cat-civil", name: "Civil & Structural" },
+  { id: "cat-sanitation", name: "Sanitation & Waste" },
+];
+
+export interface DemoTeam {
+  id: string;
+  name: string;
+  teamId: string;
+  teamName: string;
+  leadName?: string;
+  activeCount: number;
+  activeIncidentCount: number;
+  overdueCount: number;
+  overdueIncidentCount: number;
+  resolvedIncidentCount: number;
+  avgResolutionHours: number;
+  workloadPct: number;
+  workloadPercentage: number;
+}
+
+export const DEMO_TEAMS: DemoTeam[] = [
+  {
+    id: "team-electrical",
+    teamId: "team-electrical",
+    name: "Electrical Maintenance",
+    teamName: "Electrical Maintenance",
+    leadName: "Rajesh Sharma",
+    activeCount: 5,
+    activeIncidentCount: 5,
+    overdueCount: 1,
+    overdueIncidentCount: 1,
+    resolvedIncidentCount: 14,
+    avgResolutionHours: 3.4,
+    workloadPct: 50,
+    workloadPercentage: 50,
+  },
+  {
+    id: "team-plumbing",
+    teamId: "team-plumbing",
+    name: "Plumbing & Water Works",
+    teamName: "Plumbing & Water Works",
+    leadName: "Manoj Kumar",
+    activeCount: 3,
+    activeIncidentCount: 3,
+    overdueCount: 0,
+    overdueIncidentCount: 0,
+    resolvedIncidentCount: 11,
+    avgResolutionHours: 2.1,
+    workloadPct: 30,
+    workloadPercentage: 30,
+  },
+  {
+    id: "team-security",
+    teamId: "team-security",
+    name: "Security & Access Control",
+    teamName: "Security & Access Control",
+    leadName: "Col. R. Verma",
+    activeCount: 1,
+    activeIncidentCount: 1,
+    overdueCount: 0,
+    overdueIncidentCount: 0,
+    resolvedIncidentCount: 8,
+    avgResolutionHours: 1.5,
+    workloadPct: 10,
+    workloadPercentage: 10,
+  },
+  {
+    id: "team-civil",
+    teamId: "team-civil",
+    name: "Civil & Infrastructure",
+    teamName: "Civil & Infrastructure",
+    leadName: "Sunita Devi",
+    activeCount: 1,
+    activeIncidentCount: 1,
+    overdueCount: 0,
+    overdueIncidentCount: 0,
+    resolvedIncidentCount: 6,
+    avgResolutionHours: 8.0,
+    workloadPct: 10,
+    workloadPercentage: 10,
+  },
+];
+
+export interface DemoIncident {
+  id: string;
+  canonicalDescription: string;
+  status: string;
+  severity: "critical" | "high" | "medium" | "low";
+  assignedTeamId: string;
+  teamName: string;
+  categoryId: string;
+  categoryName: string;
+  slaTargetAt: string | null;
+  hoursRemaining: number | null;
+  isOverdue: boolean;
+  possibleDuplicateOf: string | null;
+  resolutionNotes: string | null;
+  beforePhotoPath: string | null;
+  afterPhotoPath: string | null;
+  aiEvidenceCheck: {
+    verdict: string;
+    confidence: number;
+    reasoning: string;
+  } | null;
+  createdAt: string;
+  resolvedAt: string | null;
+  closedAt: string | null;
+  lat: number;
+  lng: number;
+}
+
+export const DEMO_INCIDENTS: DemoIncident[] = [
+  {
+    id: "inc-1042",
+    canonicalDescription: "Submersible pump bearing failure causing low water pressure in Block C",
+    status: "in_progress",
+    severity: "critical",
+    assignedTeamId: "team-electrical",
+    teamName: "Electrical Maintenance",
+    categoryId: "cat-electrical",
+    categoryName: "Electrical Infrastructure",
+    slaTargetAt: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
+    hoursRemaining: 0.75,
+    isOverdue: false,
+    possibleDuplicateOf: null,
+    resolutionNotes: null,
+    beforePhotoPath: null,
+    afterPhotoPath: null,
+    aiEvidenceCheck: null,
+    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+    resolvedAt: null,
+    closedAt: null,
+    lat: 28.6145,
+    lng: 77.2095,
+  },
+  {
+    id: "inc-1039",
+    canonicalDescription: "Main gate boom barrier sensor glitch causing vehicle queues",
+    status: "assigned",
+    severity: "high",
+    assignedTeamId: "team-security",
+    teamName: "Security & Access Control",
+    categoryId: "cat-security",
+    categoryName: "Security & Access",
+    slaTargetAt: new Date(Date.now() + 3 * 3600 * 1000).toISOString(),
+    hoursRemaining: 3.0,
+    isOverdue: false,
+    possibleDuplicateOf: null,
+    resolutionNotes: null,
+    beforePhotoPath: null,
+    afterPhotoPath: null,
+    aiEvidenceCheck: null,
+    createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+    resolvedAt: null,
+    closedAt: null,
+    lat: 28.6128,
+    lng: 77.2082,
+  },
+  {
+    id: "inc-1038",
+    canonicalDescription: "Puddle in basement B2 near pillar 14",
+    status: "reported",
+    severity: "low",
+    assignedTeamId: "team-plumbing",
+    teamName: "Plumbing & Water Works",
+    categoryId: "cat-plumbing",
+    categoryName: "Plumbing & Water",
+    slaTargetAt: new Date(Date.now() + 18 * 3600 * 1000).toISOString(),
+    hoursRemaining: 18.0,
+    isOverdue: false,
+    possibleDuplicateOf: "inc-1025",
+    resolutionNotes: null,
+    beforePhotoPath: null,
+    afterPhotoPath: null,
+    aiEvidenceCheck: null,
+    createdAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString(),
+    resolvedAt: null,
+    closedAt: null,
+    lat: 28.6138,
+    lng: 77.2104,
+  },
+  {
+    id: "inc-1035",
+    canonicalDescription: "Lift 2 unusual grinding noise during descent - Tower A",
+    status: "resolution_submitted",
+    severity: "critical",
+    assignedTeamId: "team-civil",
+    teamName: "Civil & Infrastructure",
+    categoryId: "cat-elevator",
+    categoryName: "Elevator / Lift",
+    slaTargetAt: new Date(Date.now() + 1 * 3600 * 1000).toISOString(),
+    hoursRemaining: 1.0,
+    isOverdue: false,
+    possibleDuplicateOf: null,
+    resolutionNotes: "Main hoist motor bearings lubricated and guide rail alignment checked.",
+    beforePhotoPath: "/demo/before-lift.jpg",
+    afterPhotoPath: "/demo/after-lift.jpg",
+    aiEvidenceCheck: {
+      verdict: "likely_sufficient",
+      confidence: 0.92,
+      reasoning: "Visual motor housing aligns with completed bearing lubrication; inspection tag updated to current date.",
+    },
+    createdAt: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
+    resolvedAt: null,
+    closedAt: null,
+    lat: 28.6152,
+    lng: 77.2088,
+  },
+  {
+    id: "inc-1025",
+    canonicalDescription: "Basement B2 recurring seepage near pillar 14",
+    status: "in_progress",
+    severity: "medium",
+    assignedTeamId: "team-plumbing",
+    teamName: "Plumbing & Water Works",
+    categoryId: "cat-plumbing",
+    categoryName: "Plumbing & Water",
+    slaTargetAt: new Date(Date.now() + 6 * 3600 * 1000).toISOString(),
+    hoursRemaining: 6.0,
+    isOverdue: false,
+    possibleDuplicateOf: null,
+    resolutionNotes: null,
+    beforePhotoPath: null,
+    afterPhotoPath: null,
+    aiEvidenceCheck: null,
+    createdAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+    resolvedAt: null,
+    closedAt: null,
+    lat: 28.6137,
+    lng: 77.2102,
+  },
+  {
+    id: "inc-1012",
+    canonicalDescription: "Clubhouse swimming pool filtration pump backwash",
+    status: "closed",
+    severity: "low",
+    assignedTeamId: "team-civil",
+    teamName: "Civil & Infrastructure",
+    categoryId: "cat-civil",
+    categoryName: "Civil & Structural",
+    slaTargetAt: null,
+    hoursRemaining: null,
+    isOverdue: false,
+    possibleDuplicateOf: null,
+    resolutionNotes: "Filtration cycle completed and water clarity verified.",
+    beforePhotoPath: null,
+    afterPhotoPath: null,
+    aiEvidenceCheck: null,
+    createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+    resolvedAt: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
+    closedAt: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
+    lat: 28.6131,
+    lng: 77.2115,
+  },
+];
+
+export interface DemoResidentIssue {
+  id: string;
+  rawText: string;
+  categoryName: string;
+  status: string;
+  createdAt: string;
+  incidentId: string;
+  history: Array<{
+    status: string;
+    note: string;
+    changedAt: string;
+  }>;
+}
+
+export const DEMO_RESIDENT_ISSUES: DemoResidentIssue[] = [
+  {
+    id: "iss-101",
+    rawText: "Water pressure in Flat 402 is very low since 6 AM today",
+    categoryName: "Electrical Infrastructure",
+    status: "in_progress",
+    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+    incidentId: "inc-1042",
+    history: [
+      {
+        status: "reported",
+        note: "Issue received and classified by AI triage",
+        changedAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+      },
+      {
+        status: "assigned",
+        note: "Assigned to Electrical Maintenance team",
+        changedAt: new Date(Date.now() - 2.5 * 3600 * 1000).toISOString(),
+      },
+      {
+        status: "in_progress",
+        note: "Staff on site repairing submersible pump bearings",
+        changedAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString(),
+      },
+    ],
+  },
+  {
+    id: "iss-102",
+    rawText: "Boom barrier RFID not detecting my car sticker at main gate",
+    categoryName: "Security & Access",
+    status: "assigned",
+    createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+    incidentId: "inc-1039",
+    history: [
+      {
+        status: "reported",
+        note: "Report registered",
+        changedAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+      },
+      {
+        status: "assigned",
+        note: "Assigned to Security team for sensor realignment",
+        changedAt: new Date(Date.now() - 4 * 3600 * 1000).toISOString(),
+      },
+    ],
+  },
+  {
+    id: "iss-103",
+    rawText: "Tower A Lift 2 making loud grinding noise on 8th floor",
+    categoryName: "Elevator / Lift",
+    status: "resolution_submitted",
+    createdAt: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
+    incidentId: "inc-1035",
+    history: [
+      {
+        status: "reported",
+        note: "Report registered",
+        changedAt: new Date(Date.now() - 8 * 3600 * 1000).toISOString(),
+      },
+      {
+        status: "in_progress",
+        note: "Technician dispatched",
+        changedAt: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
+      },
+      {
+        status: "resolution_submitted",
+        note: "Lubrication completed. Resolution evidence under committee review.",
+        changedAt: new Date(Date.now() - 1 * 3600 * 1000).toISOString(),
+      },
+    ],
+  },
+];
+
+export interface DemoNotification {
+  id: string;
+  recipient_resident_id: string;
+  template_type: string;
+  title: string;
+  body: string;
+  is_read: boolean;
+  created_at: string;
+  metadata: Record<string, unknown>;
+}
+
+export const DEMO_NOTIFICATIONS: DemoNotification[] = [
+  {
+    id: "notif-1",
+    recipient_resident_id: "demo-resident-1",
+    template_type: "resolution_submitted",
+    title: "Resolution Submitted",
+    body: "Maintenance staff marked 'Lift 2 grinding noise' as resolved. Please confirm if the issue is actually fixed.",
+    is_read: false,
+    created_at: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+    metadata: { incidentId: "inc-1035", requireFeedback: true },
+  },
+  {
+    id: "notif-2",
+    recipient_resident_id: "demo-resident-1",
+    template_type: "sla_breach_imminent",
+    title: "SLA Warning",
+    body: "Submersible pump bearing failure in Block C has 45 minutes remaining before target resolution deadline.",
+    is_read: true,
+    created_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    metadata: { incidentId: "inc-1042" },
+  },
+];

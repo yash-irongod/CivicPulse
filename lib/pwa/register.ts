@@ -33,6 +33,20 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     return null;
   }
 
+  // In development, do not register service workers to prevent Turbopack
+  // on-the-fly compilation 500 errors and avoid caching dev HMR chunks.
+  if (process.env.NODE_ENV === "development") {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        await reg.unregister();
+      }
+    } catch {
+      // Safe dev cleanup
+    }
+    return null;
+  }
+
   try {
     return await navigator.serviceWorker.register(SERVICE_WORKER_URL, {
       scope: SERVICE_WORKER_SCOPE,
@@ -40,8 +54,8 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   } catch (error) {
     // §9 Code Standards: no silent failures. A resident who can't get an
     // installed/offline-capable app must still be able to use the in-page
-    // report flow, so this error is logged, never re-thrown.
-    console.error("[nivas][pwa] service worker registration failed", error);
+    // report flow.
+    console.warn("[nivas][pwa] service worker registration failed", error);
     return null;
   }
 }

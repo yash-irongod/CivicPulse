@@ -17,28 +17,19 @@ import "server-only";
 import { createServerClient } from "@supabase/ssr";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import { z } from "zod";
 
-const publicEnvSchema = z.object({
-  url: z.url(),
-  anonKey: z.string().min(1),
-});
+function readPublicEnv(): { url: string; anonKey: string } {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const serviceEnvSchema = publicEnvSchema.extend({
-  serviceRoleKey: z.string().min(1),
-});
-
-function readPublicEnv(): z.infer<typeof publicEnvSchema> {
-  const parsed = publicEnvSchema.safeParse({
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  });
-  if (!parsed.success) {
+  if (!url || !anonKey) {
     throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set (see .env.example)",
+      "Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set. " +
+        "See .env.example for setup instructions.",
     );
   }
-  return parsed.data;
+
+  return { url, anonKey };
 }
 
 export async function createSupabaseServerClient(): Promise<SupabaseClient> {
@@ -56,9 +47,7 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient> {
             cookieStore.set(name, value, options);
           }
         } catch {
-          // Server Components cannot write cookies. Expected: session refresh
-          // is done by the Phase 3.2 middleware, and Server Actions and Route
-          // Handlers (which can write) are where sign-in happens.
+          // Server Components cannot write cookies.
         }
       },
     },
@@ -66,18 +55,17 @@ export async function createSupabaseServerClient(): Promise<SupabaseClient> {
 }
 
 export function createSupabaseServiceRoleClient(): SupabaseClient {
-  const parsed = serviceEnvSchema.safeParse({
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  });
-  if (!parsed.success) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !serviceRoleKey) {
     throw new Error(
-      "NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set (see .env.example)",
+      "Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set. " +
+        "See .env.example for setup instructions.",
     );
   }
 
-  return createClient(parsed.data.url, parsed.data.serviceRoleKey, {
+  return createClient(url, serviceRoleKey, {
     // A per-request client: it must never store or refresh a session.
     auth: { persistSession: false, autoRefreshToken: false },
   });

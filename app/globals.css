@@ -14,5 +14,100 @@
  * rather than left as dead, contradictory scaffolding.
  */
 body {
-  @apply bg-paper text-ink font-sans;
+  @apply bg-paper text-ink font-sans antialiased selection:bg-marigold selection:text-paper;
+}
+
+/* Subtle Technical Grid Background */
+.tech-grid {
+  background-image:
+    linear-gradient(to right, rgba(21, 28, 44, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(21, 28, 44, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.tech-grid-dense {
+  background-image:
+    linear-gradient(to right, rgba(21, 28, 44, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(21, 28, 44, 0.06) 1px, transparent 1px);
+  background-size: 12px 12px;
+}
+
+.tech-grid-dark {
+  background-image:
+    linear-gradient(to right, rgba(244, 245, 242, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(244, 245, 242, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Glassmorphic Tactical Panels */
+.glass-panel {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background-color: rgba(244, 245, 242, 0.85);
+  border: 1px solid rgba(21, 28, 44, 0.12);
+  box-shadow: 0 4px 24px -2px rgba(21, 28, 44, 0.06);
+}
+
+.glass-panel-dark {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background-color: rgba(21, 28, 44, 0.95);
+  border: 1px solid rgba(244, 245, 242, 0.1);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.25);
+}
+
+/* Corner Reticle Accents for Viewfinder and Tactical Cards */
+.reticle-box {
+  position: relative;
+}
+.reticle-box::before,
+.reticle-box::after {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-color: rgba(21, 28, 44, 0.35);
+  pointer-events: none;
+}
+.reticle-box::before {
+  top: -1px;
+  left: -1px;
+  border-top-width: 2px;
+  border-left-width: 2px;
+}
+.reticle-box::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+}
+
+/* Radar Sweep Keyframe */
+@keyframes radar-sweep {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-radar {
+  animation: radar-sweep 8s linear infinite;
+  transform-origin: center center;
+}
+
+/* Audio Waveform Animation */
+@keyframes waveform-pulse {
+  0%,
+  100% {
+    height: 4px;
+  }
+  50% {
+    height: 24px;
+  }
+}
+
+.animate-waveform {
+  animation: waveform-pulse 1.2s ease-in-out infinite;
 }

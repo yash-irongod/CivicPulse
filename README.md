@@ -1,36 +1,116 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nivas (निवास)
 
-## Getting Started
+Autonomous community operations platform for residential housing societies and RWAs.
 
-First, run the development server:
+---
+
+## 1. Quick Start
+
+### Prerequisites
+
+- Node.js 20+ (Next.js 15 App Router)
+- Supabase CLI or hosted Supabase project with PostGIS and pgvector extensions
+- Gemini API Key for multimodal classification and evidence verification
+
+### Installation & Local Setup
+
+1. **Clone and install dependencies**:
+
+   ```bash
+   npm install
+   ```
+
+2. **Configure environment variables**:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Fill in the required keys in `.env.local`:
+   - `NEXT_PUBLIC_SUPABASE_URL`: Supabase project URL
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Supabase anon/public key
+   - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service_role key
+   - `GEMINI_API_KEY`: Google Gemini API key
+   - `GEMINI_MODEL_CLASSIFY`: e.g. `gemini-1.5-flash-8b`
+   - `GEMINI_MODEL_MULTIMODAL`: e.g. `gemini-1.5-flash`
+   - `NEXT_PUBLIC_SITE_URL`: `http://localhost:3000`
+
+3. **Database Migrations**:
+   Apply migrations to your local or remote Supabase instance:
+
+   ```bash
+   npx supabase db push
+   # or run files in supabase/migrations/ via Supabase SQL Editor
+   ```
+
+4. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) to view the portal.
+
+---
+
+## 2. Key Architecture & Features
+
+- **Multi-Tenant Isolation via Postgres RLS (§6.1, §6.2)**: Every domain table is scoped to `community_id` with Row Level Security policies enforced in the database.
+- **Issue vs. Incident Distinction (§6.4)**: Raw resident submissions (`issues`) aggregate into actionable operational units (`incidents`) via the `incident_issues` relation.
+- **Ten-State Incident Lifecycle (§6.5)**:
+  `Reported → Validated → Prioritized → Assigned → InProgress → ResolutionSubmitted → EvidenceChecked → Resolved → ResidentFeedback → Closed`.
+  Enforced in the database via stored procedures and tested across all transition combinations.
+- **Bilingual & Hinglish AI Triage (§6.8, §10)**: Analyzes resident reports in English, Hindi (Devanagari), and code-switched Hinglish. AI never independently closes or resolves tickets.
+- **IndexedDB Offline Queue (§6.10)**: PWA reports submitted with patchy connectivity (basement parking, stairwells) are stored locally in IndexedDB and synced automatically on reconnect.
+- **Ops-Room Design System (§7)**: Built on 5 named tokens (`Ink #151C2C`, `Paper #F4F5F2`, `Marigold #9C6212`, `Pine #1F6F5C`, `Brick #B3432B`) with left-edge severity indicators and IBM Plex typography.
+
+---
+
+## 3. Testing & Verification
+
+Run the test suite:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm test
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run TypeScript strict type checking:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npx tsc --noEmit
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Run ESLint:
 
-## Learn More
+```bash
+npm run lint
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 4. Surfaces & Route Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Landing Portal**: `/` (Directs to resident reporting or admin console)
+- **Resident Surface (PWA)**:
+  - `/report`: Camera-first live viewfinder report composer with AI category confirmation
+  - `/my-reports`: SLA countdowns and incident milestone timeline
+  - `/notifications`: Community inbox with direct resolution review action
+  - `/auth/claim`: Roster-based resident pass claim flow
+- **Admin Operations Console**:
+  - `/dashboard`: Community Health Index (0-100 score with component breakdown)
+  - `/incidents`: SLA-sorted incident scanning queue with inline duplicate merge/dismiss
+  - `/map`: Spatial incident pins and density heatmaps
+  - `/teams`: Team workload statistics and resolution evidence verification
+  - `/analytics`: Recurrence hotspots ($N \ge 3$ repeat incidents in 90 days)
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 5. Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deploy to Vercel and link your Supabase production project:
+
+```bash
+vercel deploy
+```
+
+Ensure all environment variables from `.env.example` are configured in your Vercel project settings.
+
+For pilot community onboarding, refer to [Pilot Onboarding Runbook](docs/pilot-onboarding.md).
