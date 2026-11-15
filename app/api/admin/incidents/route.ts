@@ -53,10 +53,10 @@ export async function GET(request: NextRequest): Promise<Response> {
         category_id,
         sla_target_at,
         possible_duplicate_of,
-        resolution_notes,
-        before_photo_path,
-        after_photo_path,
-        ai_evidence_check,
+        resolution_note,
+        resolution_before_photo,
+        resolution_after_photo,
+        evidence_ai_check,
         created_at,
         resolved_at,
         closed_at,
@@ -89,10 +89,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       category_id: string | null;
       sla_target_at: string | null;
       possible_duplicate_of: string | null;
-      resolution_notes: string | null;
-      before_photo_path: string | null;
-      after_photo_path: string | null;
-      ai_evidence_check: unknown;
+      resolution_note: string | null;
+      resolution_before_photo: string | null;
+      resolution_after_photo: string | null;
+      evidence_ai_check: unknown;
       created_at: string;
       resolved_at: string | null;
       closed_at: string | null;
@@ -131,10 +131,10 @@ export async function GET(request: NextRequest): Promise<Response> {
         hoursRemaining: remaining,
         isOverdue: remaining !== null && remaining < 0,
         possibleDuplicateOf: inc.possible_duplicate_of,
-        resolutionNotes: inc.resolution_notes,
-        beforePhotoPath: inc.before_photo_path,
-        afterPhotoPath: inc.after_photo_path,
-        aiEvidenceCheck: inc.ai_evidence_check,
+        resolutionNotes: inc.resolution_note,
+        beforePhotoPath: inc.resolution_before_photo,
+        afterPhotoPath: inc.resolution_after_photo,
+        aiEvidenceCheck: inc.evidence_ai_check,
         createdAt: inc.created_at,
         resolvedAt: inc.resolved_at,
         closedAt: inc.closed_at,

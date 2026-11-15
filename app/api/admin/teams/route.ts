@@ -46,10 +46,10 @@ export async function GET(): Promise<Response> {
         status,
         severity,
         assigned_team_id,
-        resolution_notes,
-        before_photo_path,
-        after_photo_path,
-        ai_evidence_check,
+        resolution_note,
+        resolution_before_photo,
+        resolution_after_photo,
+        evidence_ai_check,
         created_at,
         team:teams(id, name)
       `,
@@ -65,10 +65,10 @@ export async function GET(): Promise<Response> {
       status: string;
       severity: string | null;
       assigned_team_id: string | null;
-      resolution_notes: string | null;
-      before_photo_path: string | null;
-      after_photo_path: string | null;
-      ai_evidence_check: unknown;
+      resolution_note: string | null;
+      resolution_before_photo: string | null;
+      resolution_after_photo: string | null;
+      evidence_ai_check: unknown;
       created_at: string;
       team:
         | { id: string; name: string }
@@ -87,10 +87,10 @@ export async function GET(): Promise<Response> {
         severity: v.severity,
         assignedTeamId: v.assigned_team_id,
         teamName: teamObj?.name ?? null,
-        resolutionNotes: v.resolution_notes,
-        beforePhotoPath: v.before_photo_path,
-        afterPhotoPath: v.after_photo_path,
-        aiEvidenceCheck: v.ai_evidence_check,
+        resolutionNotes: v.resolution_note,
+        beforePhotoPath: v.resolution_before_photo,
+        afterPhotoPath: v.resolution_after_photo,
+        aiEvidenceCheck: v.evidence_ai_check,
         createdAt: v.created_at,
       };
     });
