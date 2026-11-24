@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BrandMark } from "@/components/shared/brand-mark";
+import { REPLAY_ADMIN_TOUR_EVENT } from "@/components/admin/onboarding-tour";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -17,6 +18,7 @@ import {
   Menu,
   X,
   Home,
+  Compass,
   type LucideIcon,
 } from "@/components/shared/icons";
 
@@ -24,15 +26,36 @@ interface NavItem {
   href: string;
   icon: LucideIcon;
   label: string;
+  tourId: string;
 }
 
 const links: NavItem[] = [
-  { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { href: "/incidents", icon: ClipboardList, label: "Incidents" },
-  { href: "/residents", icon: Users, label: "Residents & Flats" },
-  { href: "/map", icon: MapPin, label: "Society Map" },
-  { href: "/teams", icon: Wrench, label: "Teams" },
-  { href: "/analytics", icon: BarChart3, label: "Analytics" },
+  {
+    href: "/dashboard",
+    icon: LayoutDashboard,
+    label: "Dashboard",
+    tourId: "nav-dashboard",
+  },
+  {
+    href: "/incidents",
+    icon: ClipboardList,
+    label: "Incidents",
+    tourId: "nav-incidents",
+  },
+  {
+    href: "/residents",
+    icon: Users,
+    label: "Residents & Flats",
+    tourId: "nav-residents",
+  },
+  { href: "/map", icon: MapPin, label: "Society Map", tourId: "nav-map" },
+  { href: "/teams", icon: Wrench, label: "Teams", tourId: "nav-teams" },
+  {
+    href: "/analytics",
+    icon: BarChart3,
+    label: "Analytics",
+    tourId: "nav-analytics",
+  },
 ];
 
 interface AdminNavProps {
@@ -96,6 +119,7 @@ export function AdminNav({
             <Link
               key={link.href}
               href={link.href}
+              data-tour={link.tourId}
               className={`relative flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition-colors duration-150 ${
                 isActive
                   ? "text-paper font-medium"
@@ -128,13 +152,26 @@ export function AdminNav({
         >
           Resident View
         </Link>
-        <Link
-          href="/"
-          className="flex items-center justify-center gap-2 w-full py-2 text-paper/45 text-xs hover:text-paper/80 rounded-xl transition-colors"
-        >
-          <Home size={14} />
-          <span>Home</span>
-        </Link>
+        <div className="flex items-center gap-1">
+          <Link
+            href="/"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-paper/45 text-xs hover:text-paper/80 rounded-xl transition-colors"
+          >
+            <Home size={13} />
+            <span>Home</span>
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              setIsOpen(false);
+              window.dispatchEvent(new Event(REPLAY_ADMIN_TOUR_EVENT));
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 text-paper/45 text-xs hover:text-paper/80 rounded-xl transition-colors"
+          >
+            <Compass size={13} />
+            <span>Setup guide</span>
+          </button>
+        </div>
       </div>
     </>
   );

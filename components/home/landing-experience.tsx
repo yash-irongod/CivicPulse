@@ -10,6 +10,7 @@ import {
   useMotionValueEvent,
 } from "framer-motion";
 import { BrandMark } from "@/components/shared/brand-mark";
+import { PwaInstallPrompt } from "@/components/pwa/install-prompt";
 import {
   Camera,
   Wrench,
@@ -620,6 +621,7 @@ export function LandingExperience({ assets }: LandingExperienceProps) {
           </div>
         </div>
       </footer>
+      <PwaInstallPrompt logoUrl={assets.logo} />
     </div>
   );
 }

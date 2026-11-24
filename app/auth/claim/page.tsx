@@ -9,6 +9,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import type { ReactElement } from "react";
 
+import { ClaimInstallStrip } from "@/components/pwa/claim-install-strip";
 import { ClaimForm } from "@/components/resident/claim-form";
 import { ClaimNotice } from "@/components/resident/claim-notice";
 import { LanguageSwitch } from "@/components/resident/language-switch";
@@ -141,18 +142,21 @@ export default async function ClaimPage({
         </div>
 
         {view.kind === "form" ? (
-          <ClaimForm
-            token={view.token}
-            lang={lang}
-            displayName={view.entry.displayName}
-            communityName={view.entry.communityName}
-            spaceName={view.entry.spaceName}
-            initialNotice={
-              query.error
-                ? { code: query.error, minutes: query.waitMinutes }
-                : null
-            }
-          />
+          <>
+            <ClaimForm
+              token={view.token}
+              lang={lang}
+              displayName={view.entry.displayName}
+              communityName={view.entry.communityName}
+              spaceName={view.entry.spaceName}
+              initialNotice={
+                query.error
+                  ? { code: query.error, minutes: query.waitMinutes }
+                  : null
+              }
+            />
+            <ClaimInstallStrip lang={lang} />
+          </>
         ) : (
           <ClaimNotice
             tone="attention"

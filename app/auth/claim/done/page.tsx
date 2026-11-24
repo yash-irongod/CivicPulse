@@ -10,6 +10,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import type { ReactElement } from "react";
 import { z } from "zod";
 
+import { ClaimInstallStrip } from "@/components/pwa/claim-install-strip";
 import { ClaimNotice } from "@/components/resident/claim-notice";
 import { LanguageSwitch } from "@/components/resident/language-switch";
 import { CLAIM_PATH, POST_CLAIM_PATH } from "@/lib/auth/claim";
@@ -112,6 +113,8 @@ export default async function ClaimDonePage({
               : t(lang, "done_body", { community })
           }
         />
+
+        <ClaimInstallStrip lang={lang} showPushOption />
 
         <Link
           href="/"

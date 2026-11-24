@@ -5,6 +5,7 @@ import "./globals.css";
 import { Ink } from "@/lib/design/tokens";
 import { ServiceWorkerRegistrar } from "@/lib/pwa/register";
 import { MotionProvider } from "@/components/shared/motion-provider";
+import { PwaInstallProvider } from "@/components/pwa/pwa-provider";
 
 const APP_NAME = "Nivas";
 const APP_DESCRIPTION =
@@ -156,8 +157,10 @@ export default function RootLayout({
         className={`${plexSans.variable} ${plexSansDevanagari.variable} ${plexMono.variable} antialiased`}
       >
         <MotionProvider>
-          <ServiceWorkerRegistrar />
-          {children}
+          <PwaInstallProvider>
+            <ServiceWorkerRegistrar />
+            {children}
+          </PwaInstallProvider>
         </MotionProvider>
       </body>
     </html>

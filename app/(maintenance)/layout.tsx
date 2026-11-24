@@ -4,6 +4,7 @@
 import React from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/shared/brand-mark";
+import { PwaInstallPrompt } from "@/components/pwa/install-prompt";
 import { Home } from "@/components/shared/icons";
 import {
   getCommunityDisplayName,
@@ -61,6 +62,7 @@ export default async function MaintenanceLayout({
       <main className="flex-1 max-w-lg w-full mx-auto px-4 py-5 pb-10">
         {children}
       </main>
+      <PwaInstallPrompt allowPushPrompt logoUrl={assets.logo} />
     </div>
   );
 }

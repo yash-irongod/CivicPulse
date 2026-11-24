@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ResidentBottomNav } from "@/components/resident/nav";
+import { PwaInstallPrompt } from "@/components/pwa/install-prompt";
 import { CommunityShellProvider } from "@/components/shared/community-context";
 import { BrandMark } from "@/components/shared/brand-mark";
 import {
@@ -59,6 +60,11 @@ export default async function ResidentLayout({
         <main className="flex-1 max-w-lg w-full mx-auto pb-24 px-4 pt-5">
           {children}
         </main>
+        <PwaInstallPrompt
+          allowPushPrompt
+          logoUrl={assets.logo}
+          bottomOffsetClass="bottom-20"
+        />
         <ResidentBottomNav />
       </div>
     </CommunityShellProvider>
