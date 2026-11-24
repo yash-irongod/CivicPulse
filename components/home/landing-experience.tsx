@@ -77,11 +77,12 @@ export function LandingExperience({ assets }: LandingExperienceProps) {
     restDelta: 0.001,
   });
 
-  // Signature scroll-driven stage scrubbed smoothly over workflow container
+  // Wait until the workflow heading reaches the upper quarter of the viewport
+  // before advancing past Stage 1, giving Stage 1 a comfortable reading dwell.
   const scrubRef = useRef<HTMLDivElement | null>(null);
   const { scrollYProgress: sectionProgress } = useScroll({
     target: scrubRef,
-    offset: ["start 0.75", "end 0.55"],
+    offset: ["start 0.25", "end 0.35"],
   });
 
   const [activeBeat, setActiveBeat] = useState(0);
@@ -89,8 +90,8 @@ export function LandingExperience({ assets }: LandingExperienceProps) {
 
   useMotionValueEvent(sectionProgress, "change", (latest) => {
     if (manualOverride) return;
-    if (latest < 0.34) setActiveBeat(0);
-    else if (latest < 0.68) setActiveBeat(1);
+    if (latest < 0.45) setActiveBeat(0);
+    else if (latest < 0.76) setActiveBeat(1);
     else setActiveBeat(2);
   });
 
