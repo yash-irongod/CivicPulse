@@ -91,7 +91,7 @@ export function LandingExperience({ assets }: LandingExperienceProps) {
   useMotionValueEvent(sectionProgress, "change", (latest) => {
     if (manualOverride) return;
     if (latest < 0.45) setActiveBeat(0);
-    else if (latest < 0.76) setActiveBeat(1);
+    else if (latest < 0.64) setActiveBeat(1);
     else setActiveBeat(2);
   });
 
@@ -302,7 +302,7 @@ export function LandingExperience({ assets }: LandingExperienceProps) {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left: Interactive Sequence List */}
-            <div className="lg:col-span-6 space-y-3">
+            <div className="lg:col-span-6 space-y-4 lg:pb-12">
               {WORKFLOW_BEATS.map((beat, idx) => {
                 const isSelected = activeBeat === idx;
                 const Icon = beat.icon;
@@ -367,7 +367,7 @@ export function LandingExperience({ assets }: LandingExperienceProps) {
             </div>
 
             {/* Right: Live Interactive Ticket State Frame */}
-            <div className="lg:col-span-6 lg:sticky lg:top-24">
+            <div className="lg:col-span-6 lg:sticky lg:top-[max(5.5rem,calc(50vh-8.5rem))]">
               <div className="rounded-2xl border border-ink/10 bg-paper p-6 sm:p-8 shadow-elevated space-y-6">
                 <div className="flex items-center justify-between border-b border-ink/8 pb-4">
                   <div>
