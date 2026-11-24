@@ -1,6 +1,5 @@
-// Status Badge (Task 10.3, §7.2, §7.7).
-// Renders the ten-state incident lifecycle with WCAG AA compliant contrast.
-// Plain language, sentence case, no decorative status pills with dots.
+// Status Badge — pill badge for the 11-state incident lifecycle.
+// Rounded, modern, WCAG AA compliant contrast.
 
 import React from "react";
 import type { IncidentStatus } from "@/lib/validation/transition";
@@ -32,20 +31,20 @@ export function StatusBadge({
 }: StatusBadgeProps) {
   const label = STATUS_LABELS[status]?.[lang] || status;
 
-  let colorClasses = "bg-ink/10 text-ink";
+  let colorClasses = "bg-ink/8 text-ink/80";
   if (status === "resolved" || status === "closed") {
-    colorClasses = "bg-pine text-on-pine";
+    colorClasses = "bg-pine/10 text-pine";
   } else if (status === "escalated") {
-    colorClasses = "bg-brick text-on-brick";
+    colorClasses = "bg-brick/10 text-brick";
   } else if (status === "in_progress" || status === "assigned") {
-    colorClasses = "bg-marigold text-on-marigold";
+    colorClasses = "bg-marigold/10 text-marigold";
   } else if (status === "reported") {
-    colorClasses = "bg-ink/20 text-ink";
+    colorClasses = "bg-ink/8 text-ink/60";
   }
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 text-xs font-medium tracking-normal ${colorClasses} ${className}`}
+      className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${colorClasses} ${className}`}
     >
       {label}
     </span>

@@ -1,9 +1,11 @@
-// Incident Tracking Timeline Component (Task 8.3, §6.5, §7.2, §7.4).
-// Displays the incident's lifecycle stage in plain language with audit trail history.
+// Incident Timeline — clean stepper + activity feed.
+// 5 milestone stages with smooth progress, plus chronological history.
 
 "use client";
 
 import React from "react";
+import { motion } from "framer-motion";
+import { Check } from "@/components/shared/icons";
 import type { IncidentStatus } from "@/lib/lifecycle/state-machine";
 
 export interface StatusHistoryItem {
@@ -33,7 +35,6 @@ export const STATUS_LABELS: Record<string, string> = {
   closed: "Closed",
 };
 
-// 5 Main Milestone Stages for non-technical residents
 const MILESTONE_STAGES = [
   { key: "reported", label: "Reported" },
   { key: "assigned", label: "Assigned" },
@@ -70,29 +71,39 @@ export function IncidentTimeline({
   history = [],
 }: IncidentTimelineProps) {
   const currentStep = getStatusStepIndex(status);
+  const progressRatio = currentStep / (MILESTONE_STAGES.length - 1);
 
   return (
-    <div className="space-y-6 pt-3">
-      {/* Current Stage Highlight Ribbon */}
-      <div className="flex items-center justify-between bg-ink/5 border border-ink/10 px-3 py-2 text-xs">
-        <span className="text-ink/70 font-medium">Current Status:</span>
-        <span className="font-bold text-ink flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-marigold inline-block"></span>
+    <div className="space-y-5">
+      {/* Current status summary */}
+      <div className="flex items-center justify-between bg-ink/[0.04] rounded-xl px-4 py-2.5">
+        <span className="text-xs text-ink/60 font-medium">Current status</span>
+        <span className="text-sm font-semibold text-ink flex items-center gap-2">
+          <span
+            className={`w-2 h-2 rounded-full ${
+              status === "closed" || status === "resolved"
+                ? "bg-pine"
+                : status === "escalated"
+                  ? "bg-brick"
+                  : "bg-marigold"
+            }`}
+          />
           {STATUS_LABELS[status] || status}
         </span>
       </div>
 
-      {/* Visual Stepper Conduit */}
-      <div className="relative px-2 py-1">
-        {/* Background Track */}
-        <div className="absolute top-3 left-6 right-6 h-[2px] bg-ink/15 z-0" />
-        {/* Active Progress Fill */}
-        <div
-          className="absolute top-3 left-6 h-[2px] bg-pine transition-all duration-500 z-0"
-          style={{
-            width: `${(currentStep / (MILESTONE_STAGES.length - 1)) * 88}%`,
-          }}
-        />
+      {/* Visual stepper */}
+      <div className="relative px-1 py-2">
+        {/* Background track */}
+        <div className="absolute top-[22px] left-[22px] right-[22px] h-[2px] bg-ink/10 z-0 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: progressRatio }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            style={{ originX: 0 }}
+            className="h-full w-full bg-pine rounded-full"
+          />
+        </div>
 
         <div className="flex items-center justify-between relative z-10">
           {MILESTONE_STAGES.map((stage, idx) => {
@@ -100,30 +111,32 @@ export function IncidentTimeline({
             const isCurrent = idx === currentStep;
 
             return (
-              <div
-                key={stage.key}
-                className="flex flex-col items-center gap-2 group"
-              >
-                <div
-                  className={`w-6 h-6 flex items-center justify-center transition-all ${
+              <div key={stage.key} className="flex flex-col items-center gap-2">
+                <motion.div
+                  initial={false}
+                  animate={{ scale: isCurrent ? 1.08 : 1 }}
+                  transition={{ type: "spring", stiffness: 360, damping: 24 }}
+                  className={`w-9 h-9 flex items-center justify-center rounded-full transition-colors duration-200 ${
                     isCurrent
-                      ? "bg-marigold text-on-marigold ring-4 ring-marigold/20 shadow-md font-bold scale-110"
+                      ? "bg-marigold text-on-marigold ring-4 ring-marigold/15 shadow-soft"
                       : isCompleted
-                        ? "bg-pine text-on-pine font-semibold"
-                        : "bg-paper border-2 border-ink/30 text-ink/40"
+                        ? "bg-pine text-on-pine"
+                        : "bg-paper border border-ink/15 text-ink/35"
                   }`}
                 >
-                  <span className="text-[10px] font-mono">
-                    {isCompleted ? "✓" : idx + 1}
-                  </span>
-                </div>
+                  {isCompleted ? (
+                    <Check size={14} strokeWidth={3} />
+                  ) : (
+                    <span className="text-xs font-semibold">{idx + 1}</span>
+                  )}
+                </motion.div>
                 <span
-                  className={`text-[10px] font-mono uppercase tracking-tight text-center ${
+                  className={`text-[10px] sm:text-[11px] text-center max-w-[64px] leading-tight ${
                     isCurrent
-                      ? "font-bold text-ink"
+                      ? "font-semibold text-ink"
                       : isCompleted
-                        ? "font-medium text-ink/80"
-                        : "text-ink/40"
+                        ? "font-medium text-ink/65"
+                        : "text-ink/35"
                   }`}
                 >
                   {stage.label}
@@ -134,42 +147,40 @@ export function IncidentTimeline({
         </div>
       </div>
 
-      {/* Activity History */}
+      {/* Activity history */}
       {history.length > 0 && (
-        <div className="border border-ink/15 bg-paper p-4 space-y-3 shadow-sm">
-          <div className="flex items-center justify-between border-b border-ink/10 pb-2">
-            <h4 className="text-xs font-semibold text-ink">
-              Updates & Activity
-            </h4>
-            <span className="text-[11px] text-ink/50">
+        <div className="bg-ink/[0.02] rounded-xl border border-ink/8 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-ink/6">
+            <h4 className="text-xs font-semibold text-ink">Activity</h4>
+            <span className="text-[11px] text-ink/45">
               {history.length} {history.length === 1 ? "update" : "updates"}
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="divide-y divide-ink/5">
             {history.map((item) => (
-              <div
-                key={item.id}
-                className="text-xs flex flex-col border-l-2 border-l-marigold/60 pl-3 py-1 bg-ink/[0.02]"
-              >
-                <div className="flex items-center justify-between text-ink">
-                  <span className="font-semibold text-xs">
-                    {STATUS_LABELS[item.to_status] || item.to_status}
-                  </span>
-                  <span className="text-[10px] text-ink/50 font-mono">
-                    {new Date(item.created_at).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
+              <div key={item.id} className="px-4 py-3 flex gap-3">
+                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-marigold/60 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-ink">
+                      {STATUS_LABELS[item.to_status] || item.to_status}
+                    </span>
+                    <span className="text-[10px] text-ink/40 shrink-0 tabular-nums">
+                      {new Date(item.created_at).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  {item.note && (
+                    <p className="text-[11px] text-ink/60 mt-0.5 leading-relaxed">
+                      {item.note}
+                    </p>
+                  )}
                 </div>
-                {item.note && (
-                  <p className="text-[11px] text-ink/75 mt-1 leading-relaxed">
-                    {item.note}
-                  </p>
-                )}
               </div>
             ))}
           </div>

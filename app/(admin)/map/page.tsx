@@ -1,16 +1,18 @@
-// Admin Spatial Map Page (Task 9.3, §7.2, §7.4).
-// Spatial pins and density heatmap using incident geographic coordinates.
+// Admin Society Map Page (Phase 6).
+// Real interactive Leaflet map of geotagged resident reports.
 
 import React from "react";
 import { IncidentMap } from "@/components/admin/incident-map";
 
 export default function AdminMapPage() {
   return (
-    <div className="space-y-6">
-      <header className="border-b border-ink/10 pb-4">
-        <h1 className="text-xl font-bold text-ink">Incident Map</h1>
-        <p className="text-xs text-ink/70">
-          Geospatial visualization of community incidents and density heatmaps.
+    <div className="space-y-6 pb-8">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-bold text-ink tracking-tight">
+          Society Map
+        </h1>
+        <p className="text-sm text-ink/55">
+          View incident locations and active priorities across your community.
         </p>
       </header>
 

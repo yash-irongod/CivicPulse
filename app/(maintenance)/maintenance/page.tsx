@@ -1,11 +1,21 @@
 // Maintenance Staff — Assigned Work List.
-// Shows all incidents assigned to the staff member's team(s),
-// sorted by urgency (overdue first, then closest SLA deadline).
+// Sorted by urgency (overdue first, then closest SLA deadline).
 
 "use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  SeverityIndicator,
+  getSeverityBorderClass,
+} from "@/components/shared/severity-indicator";
+import {
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  ChevronRight,
+  CircleAlert,
+} from "@/components/shared/icons";
 
 interface AssignedJob {
   id: string;
@@ -62,14 +72,14 @@ export default function MaintenanceWorklistPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="h-6 bg-ink/10 w-1/3 animate-pulse rounded" />
+        <div className="h-6 bg-ink/8 w-1/3 animate-pulse rounded-lg" />
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="p-4 border border-ink/10 bg-paper space-y-2 animate-pulse"
+            className="p-5 border border-ink/8 rounded-2xl bg-paper space-y-2.5 animate-pulse"
           >
-            <div className="h-4 bg-ink/10 w-2/3 rounded" />
-            <div className="h-3 bg-ink/10 w-1/2 rounded" />
+            <div className="h-4 bg-ink/8 w-2/3 rounded" />
+            <div className="h-3 bg-ink/6 w-1/2 rounded" />
           </div>
         ))}
       </div>
@@ -78,32 +88,33 @@ export default function MaintenanceWorklistPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="space-y-1">
         <h1 className="text-xl font-bold text-ink tracking-tight">
           Assigned Work
         </h1>
-        <p className="text-xs text-ink/60 mt-0.5">
+        <p className="text-xs text-ink/55">
           {jobs.length === 0
-            ? "No assignments right now."
+            ? "No open assignments right now."
             : `${activeJobs.length} active · ${pendingReviewJobs.length} awaiting review`}
         </p>
       </div>
 
       {error && (
-        <div className="p-3 bg-brick/10 border-l-4 border-brick text-xs text-brick font-medium">
-          {error}
+        <div className="flex items-center gap-2 p-3.5 bg-brick/10 border-l-4 border-brick rounded-xl text-xs text-brick font-medium">
+          <CircleAlert size={15} />
+          <span>{error}</span>
         </div>
       )}
 
       {jobs.length === 0 && !error && (
-        <div className="text-center py-12 space-y-3">
-          <div className="text-4xl text-ink/20">✓</div>
-          <p className="text-sm text-ink/60">
-            No work assigned to you right now.
+        <div className="rounded-2xl border border-dashed border-ink/15 bg-paper text-center py-14 px-6 space-y-2.5">
+          <CheckCircle2 size={36} className="text-pine/35 mx-auto" />
+          <p className="text-sm font-semibold text-ink">
+            No work assigned right now
           </p>
-          <p className="text-xs text-ink/40">
-            New assignments will appear here when the committee assigns work to
-            your team.
+          <p className="text-xs text-ink/50 max-w-xs mx-auto leading-relaxed">
+            New tasks appear here as soon as the committee assigns work to your
+            team.
           </p>
         </div>
       )}
@@ -111,9 +122,7 @@ export default function MaintenanceWorklistPage() {
       {/* Active jobs */}
       {activeJobs.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-xs font-semibold text-ink/60 uppercase tracking-wider">
-            Active
-          </h2>
+          <h2 className="text-xs font-semibold text-ink/55">Active tasks</h2>
           {activeJobs.map((job) => (
             <JobCard key={job.id} job={job} />
           ))}
@@ -122,9 +131,9 @@ export default function MaintenanceWorklistPage() {
 
       {/* Pending review */}
       {pendingReviewJobs.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-xs font-semibold text-ink/60 uppercase tracking-wider">
-            Submitted — Awaiting Committee Review
+        <div className="space-y-3 pt-2">
+          <h2 className="text-xs font-semibold text-ink/55">
+            Submitted — awaiting committee review
           </h2>
           {pendingReviewJobs.map((job) => (
             <JobCard key={job.id} job={job} />
@@ -137,59 +146,59 @@ export default function MaintenanceWorklistPage() {
 
 function JobCard({ job }: { job: AssignedJob }) {
   const statusLabel = STATUS_LABELS[job.status] || job.status;
+  const borderClass = getSeverityBorderClass(job.severity);
 
   return (
     <Link
       href={`/maintenance/${job.id}`}
-      className="block border border-ink/15 bg-paper p-4 space-y-2 hover:border-ink/30 transition-colors shadow-sm"
+      className={`block rounded-2xl border border-ink/10 ${borderClass} bg-paper p-4 sm:p-5 space-y-3 hover:border-ink/25 hover:shadow-card transition-all shadow-soft group`}
     >
-      <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-2">
-          {job.severity && (
-            <span
-              className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 ${
-                job.severity === "critical"
-                  ? "bg-brick text-on-brick"
-                  : job.severity === "high"
-                    ? "bg-marigold text-on-marigold"
-                    : job.severity === "medium"
-                      ? "bg-ink/10 text-ink"
-                      : "bg-ink/5 text-ink/70"
-              }`}
-            >
-              {job.severity}
+      <div className="flex items-center justify-between text-xs gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {job.severity && <SeverityIndicator severity={job.severity} />}
+          {job.categoryName && (
+            <span className="text-[11px] font-medium text-ink/65 bg-ink/5 px-2.5 py-0.5 rounded-full">
+              {job.categoryName}
             </span>
           )}
-          {job.categoryName && (
-            <span className="text-ink/60">{job.categoryName}</span>
-          )}
         </div>
-        <span className="text-[10px] font-mono text-ink/50">
+        <span className="text-[11px] font-mono text-ink/40 shrink-0">
           #{job.id.slice(0, 8)}
         </span>
       </div>
 
-      <p className="text-sm text-ink leading-snug font-medium">
+      <p className="text-sm text-ink leading-snug font-medium group-hover:text-ink">
         {job.description || "Maintenance task"}
       </p>
 
-      <div className="flex items-center justify-between text-xs pt-1 border-t border-ink/10">
-        <span className="font-medium text-ink/70">{statusLabel}</span>
+      <div className="flex items-center justify-between text-xs pt-2.5 border-t border-ink/8">
+        <span className="font-medium text-ink/70 flex items-center gap-1">
+          <span>{statusLabel}</span>
+          <ChevronRight size={13} className="text-ink/35" />
+        </span>
 
         {job.hoursRemaining !== null &&
-          job.status !== "resolution_submitted" && (
+          job.status !== "resolution_submitted" &&
+          job.status !== "evidence_checked" && (
             <span
-              className={`text-[11px] font-mono px-2 py-0.5 ${
+              className={`inline-flex items-center gap-1 text-[11px] font-medium px-2.5 py-0.5 rounded-full tabular-nums ${
                 job.isOverdue
-                  ? "bg-brick/10 text-brick font-bold"
+                  ? "bg-brick/10 text-brick"
                   : job.hoursRemaining < 2
-                    ? "bg-marigold/10 text-marigold font-semibold"
+                    ? "bg-marigold/10 text-marigold"
                     : "bg-pine/10 text-pine"
               }`}
             >
-              {job.isOverdue
-                ? `${Math.abs(job.hoursRemaining).toFixed(1)}h overdue`
-                : `${job.hoursRemaining.toFixed(1)}h remaining`}
+              {job.isOverdue ? (
+                <AlertTriangle size={11} />
+              ) : (
+                <Clock size={11} />
+              )}
+              <span>
+                {job.isOverdue
+                  ? `${Math.abs(job.hoursRemaining).toFixed(1)}h overdue`
+                  : `${job.hoursRemaining.toFixed(1)}h left`}
+              </span>
             </span>
           )}
       </div>

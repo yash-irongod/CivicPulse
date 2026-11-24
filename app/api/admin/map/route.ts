@@ -1,5 +1,5 @@
-// GET /api/admin/map — Incident Geo Data for Map View (Task 9.3, §7.2, §7.4).
-// Returns spatial points and severity for open incidents.
+// GET /api/admin/map — Incident Geo Data for Map View (Phase 6).
+// Returns spatial coordinates, severity, status, category, team, and SLA info.
 
 import { NextResponse } from "next/server";
 
@@ -9,6 +9,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/auth/guards";
 import { describeError, logEvent } from "@/lib/auth/log";
+import { hoursRemaining } from "@/lib/lifecycle/sla";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,6 @@ export async function GET(): Promise<Response> {
   }
 
   try {
-    // Join issues with incidents to extract geo points
     const { data: issues, error } = await db
       .from("issues")
       .select(
@@ -40,12 +40,17 @@ export async function GET(): Promise<Response> {
         id,
         geo,
         raw_text,
+        submitted_at,
         incident_links:incident_issues(
           incident:incidents(
             id,
             canonical_description,
             severity,
-            status
+            status,
+            sla_target_at,
+            created_at,
+            category:categories(name),
+            team:teams(name)
           )
         )
       `,
@@ -59,12 +64,17 @@ export async function GET(): Promise<Response> {
       canonical_description: string | null;
       severity: string | null;
       status: string;
+      sla_target_at: string | null;
+      created_at: string;
+      category?: { name: string } | Array<{ name: string }> | null;
+      team?: { name: string } | Array<{ name: string }> | null;
     };
 
     type RawIssueGeo = {
       id: string;
       geo: unknown;
       raw_text: string | null;
+      submitted_at: string;
       incident_links?: Array<{
         incident: RawIncident | RawIncident[];
       }>;
@@ -82,7 +92,6 @@ export async function GET(): Promise<Response> {
         let lng: number | null = null;
 
         if (typeof issue.geo === "string") {
-          // e.g. "POINT(77.209 28.6139)" or "SRID=4326;POINT(77.209 28.6139)"
           const match = issue.geo.match(
             /POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i,
           );
@@ -101,8 +110,25 @@ export async function GET(): Promise<Response> {
           lat = coords[1];
         }
 
-        // Skip issues without valid coordinates — never plot at fake defaults
-        if (lat === null || lng === null) return [];
+        // Skip issues without valid coordinates — never plot fake coordinates
+        if (
+          lat === null ||
+          lng === null ||
+          Number.isNaN(lat) ||
+          Number.isNaN(lng)
+        ) {
+          return [];
+        }
+
+        const cat = Array.isArray(incident.category)
+          ? incident.category[0]
+          : incident.category;
+        const tm = Array.isArray(incident.team)
+          ? incident.team[0]
+          : incident.team;
+        const remaining = incident.sla_target_at
+          ? hoursRemaining({ sla_target_at: incident.sla_target_at })
+          : null;
 
         return [
           {
@@ -114,6 +140,11 @@ export async function GET(): Promise<Response> {
             status: incident.status,
             description:
               incident.canonical_description || issue.raw_text || "Report",
+            categoryName: cat?.name ?? null,
+            teamName: tm?.name ?? null,
+            hoursRemaining: remaining,
+            isOverdue: remaining !== null && remaining < 0,
+            createdAt: incident.created_at || issue.submitted_at,
           },
         ];
       },

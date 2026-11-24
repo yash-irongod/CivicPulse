@@ -1,29 +1,27 @@
-// Content-Aware Incident Queue Skeleton (Task 10.2, §7.6).
-// Matches the real layout of the ops-room dense incident scanning rows.
+// Incident Queue Skeleton — shimmer loading for the incident list.
 
 import React from "react";
 
-export function IncidentQueueSkeleton({ count = 5 }: { count?: number }) {
+interface IncidentQueueSkeletonProps {
+  count?: number;
+}
+
+export function IncidentQueueSkeleton({
+  count = 5,
+}: IncidentQueueSkeletonProps) {
   return (
-    <div
-      className="border border-ink/15 bg-paper divide-y divide-ink/10"
-      aria-busy="true"
-      aria-label="Loading incident queue"
-    >
-      {Array.from({ length: count }).map((_, idx) => (
+    <div className="space-y-2 animate-pulse">
+      {Array.from({ length: count }).map((_, i) => (
         <div
-          key={idx}
-          className="p-3.5 space-y-2 border-l-4 border-l-ink/10 animate-pulse"
+          key={i}
+          className="bg-paper border border-ink/6 rounded-xl p-4 space-y-2.5"
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-16 bg-ink/10" />
-              <div className="h-3 w-20 bg-ink/10" />
-              <div className="h-3 w-24 bg-ink/10" />
-            </div>
-            <div className="h-3 w-20 bg-ink/10" />
+          <div className="flex items-center gap-2">
+            <div className="h-4 bg-ink/8 w-16 rounded" />
+            <div className="h-4 bg-ink/6 w-20 rounded-full" />
+            <div className="h-4 bg-ink/5 w-16 rounded-full" />
           </div>
-          <div className="h-3.5 w-3/4 bg-ink/10" />
+          <div className="h-4 bg-ink/6 w-3/4 rounded" />
         </div>
       ))}
     </div>

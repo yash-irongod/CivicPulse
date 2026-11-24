@@ -1,5 +1,4 @@
-// Resident Report Page (Task 8.2, §7.4).
-// Hero live viewfinder report composer with post-submission AI category confirmation.
+// Resident Report Page — clean submission flow.
 
 "use client";
 
@@ -22,11 +21,13 @@ export default function ResidentReportPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <header className="border-b border-ink/10 pb-3">
-        <h1 className="text-lg font-bold text-ink">New Report</h1>
-        <p className="text-xs text-ink/70">
-          Point your camera at the problem, speak, or describe in text.
+    <div className="space-y-5">
+      <header>
+        <h1 className="text-xl font-bold text-ink tracking-tight">
+          New Report
+        </h1>
+        <p className="text-sm text-ink/50 mt-1">
+          Take a photo, speak, or describe the issue.
         </p>
       </header>
 

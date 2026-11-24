@@ -3,55 +3,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { isDemoMode } from "../demo/mode";
 import { describeError, logEvent } from "./log";
 import type { MembershipRecord, ResidentProfile, UserSession } from "./roles";
-
-/**
- * Returns a synthetic demo session. ONLY available when isDemoMode() is true
- * (i.e. development with DEMO_MODE=true). Never used in production.
- */
-export function getDemoSession(): UserSession {
-  const communityId =
-    process.env.NEXT_PUBLIC_DEMO_COMMUNITY_ID ||
-    "00000000-0000-0000-0000-000000000001";
-  return {
-    resident: {
-      id: "demo-resident-1",
-      authUserId: "demo-auth-1",
-      displayName: "Vikram Sharma (Demo)",
-      phone: "+91 98765 43210",
-      preferredLanguage: "en",
-    },
-    memberships: [
-      {
-        id: "demo-mem-admin",
-        residentId: "demo-resident-1",
-        communityId,
-        spaceId: "flat-402",
-        role: "committee_admin",
-        status: "active",
-      },
-      {
-        id: "demo-mem-resident",
-        residentId: "demo-resident-1",
-        communityId,
-        spaceId: "flat-402",
-        role: "resident",
-        status: "active",
-      },
-      {
-        id: "demo-mem-staff",
-        residentId: "demo-resident-1",
-        communityId,
-        spaceId: "flat-402",
-        role: "maintenance_staff",
-        status: "active",
-      },
-    ],
-    activeCommunityId: communityId,
-  };
-}
 
 export async function getSession(
   client: SupabaseClient,
@@ -63,8 +16,6 @@ export async function getSession(
     } = await client.auth.getUser();
 
     if (authError || !user) {
-      // Only fall back to demo session in explicit dev demo mode
-      if (isDemoMode()) return getDemoSession();
       return null;
     }
 
@@ -117,8 +68,6 @@ export async function getSession(
       activeCommunityId,
     };
   } catch (error) {
-    // Only fall back to demo session in explicit dev demo mode
-    if (isDemoMode()) return getDemoSession();
     logEvent("error", "session.get_failed", describeError(error));
     return null;
   }

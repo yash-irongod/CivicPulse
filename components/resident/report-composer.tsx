@@ -1,9 +1,23 @@
-// Resident Issue Report Composer (Task 8.2, §7.4).
-// Clean, frictionless, human-first camera & voice reporting experience.
+// Resident Issue Report Composer.
+// Frictionless camera, voice, description, and automatic non-blocking GPS tagging.
 
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Camera,
+  FolderOpen,
+  MapPin,
+  Mic,
+  Square,
+  Check,
+  X,
+  RefreshCw,
+  ArrowRight,
+  CircleAlert,
+  Loader2,
+  Circle,
+} from "@/components/shared/icons";
 
 interface ReportComposerProps {
   onSubmitted?: (issueId: string) => void;
@@ -18,12 +32,13 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [micError, setMicError] = useState<string | null>(null);
   const [geo, setGeo] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
   const [locationStatus, setLocationStatus] = useState<
-    "idle" | "loading" | "granted" | "denied"
+    "idle" | "loading" | "granted" | "denied" | "cleared"
   >("idle");
   const [cameraActive, setCameraActive] = useState(false);
 
@@ -31,12 +46,11 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Request GPS only when the user explicitly taps "Add Location"
-  const requestLocation = () => {
-    if (!("geolocation" in navigator)) {
+  const requestLocation = useCallback(() => {
+    if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
       setLocationStatus("denied");
       return;
     }
@@ -54,25 +68,22 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
       },
       { timeout: 10000, enableHighAccuracy: true },
     );
-  };
+  }, []);
 
-  // Start camera only when user explicitly requests it
-  const startCamera = async () => {
-    if (!navigator.mediaDevices?.getUserMedia) return;
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-        audio: false,
-      });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+  // Automatically capture non-blocking GPS on mount so map pins populate naturally
+  useEffect(() => {
+    requestLocation();
+
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
       }
-      setCameraActive(true);
-    } catch {
-      // Camera permission denied or unsupported; file picker fallback available
-    }
-  };
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [requestLocation]);
 
   const stopCamera = () => {
     if (streamRef.current) {
@@ -82,7 +93,28 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
     setCameraActive(false);
   };
 
-  // Capture frame from camera
+  const startCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      fileInputRef.current?.click();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setCameraActive(true);
+      requestAnimationFrame(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      });
+    } catch {
+      fileInputRef.current?.click();
+    }
+  };
+
   const capturePhoto = () => {
     if (videoRef.current) {
       const video = videoRef.current;
@@ -107,7 +139,6 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
     }
   };
 
-  // Upload photo from gallery/files
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -117,8 +148,8 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
     }
   };
 
-  // Voice recording toggle
   const toggleRecording = async () => {
+    setMicError(null);
     if (isRecording) {
       mediaRecorderRef.current?.stop();
       setIsRecording(false);
@@ -151,12 +182,13 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
           setRecordingSeconds((prev) => prev + 1);
         }, 1000);
       } catch {
-        alert("Please allow microphone access to record voice notes.");
+        setMicError(
+          "Microphone access was blocked. Allow microphone permission in your browser to attach voice notes.",
+        );
       }
     }
   };
 
-  // Form submission — only reports success after server confirmation
   const handleSubmit = async () => {
     if (!text.trim() && !photoBlob && !voiceBlob) {
       setSubmitError("Please add a photo, voice note, or short description.");
@@ -189,12 +221,10 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
       }
 
       const data = await res.json();
-      // Only call onSubmitted after server confirmation
       if (onSubmitted) {
         onSubmitted(data.issueId);
       }
     } catch (err) {
-      // Show the real error — never pretend it was submitted
       const message = err instanceof Error ? err.message : "Submission failed";
       if (message === "rate_limited") {
         setSubmitError(
@@ -214,39 +244,75 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
 
   return (
     <div className="flex flex-col space-y-5 pb-6">
-      {/* Location (opt-in) */}
-      <div className="flex items-center gap-1.5 text-xs text-ink/70 px-1">
-        <span>📍</span>
-        {locationStatus === "idle" && (
+      {/* Location status bar */}
+      <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-ink/[0.03] border border-ink/8 text-xs">
+        <div className="flex items-center gap-2 min-w-0">
+          <MapPin
+            size={14}
+            className={
+              locationStatus === "granted"
+                ? "text-pine shrink-0"
+                : "text-ink/45 shrink-0"
+            }
+          />
+          {locationStatus === "loading" && (
+            <span className="text-ink/55 flex items-center gap-1.5">
+              <Loader2 size={12} className="animate-spin" />
+              <span>Pinning current location…</span>
+            </span>
+          )}
+          {locationStatus === "granted" && geo && (
+            <span className="font-medium text-ink truncate">
+              Location tagged automatically
+            </span>
+          )}
+          {(locationStatus === "idle" || locationStatus === "cleared") && (
+            <button
+              type="button"
+              onClick={requestLocation}
+              className="font-medium text-marigold hover:underline"
+            >
+              Add current location (optional)
+            </button>
+          )}
+          {locationStatus === "denied" && (
+            <span className="text-ink/50 truncate">
+              Location off — you can still submit
+            </span>
+          )}
+        </div>
+
+        {locationStatus === "granted" && (
+          <button
+            type="button"
+            onClick={() => {
+              setGeo(null);
+              setLocationStatus("cleared");
+            }}
+            className="text-ink/45 hover:text-ink text-[11px] font-medium shrink-0 px-2 py-0.5 rounded-lg hover:bg-ink/5 transition-colors"
+          >
+            Remove
+          </button>
+        )}
+        {locationStatus === "denied" && (
           <button
             type="button"
             onClick={requestLocation}
-            className="text-xs font-medium text-marigold hover:underline"
+            className="text-marigold text-[11px] font-medium shrink-0 hover:underline"
           >
-            Add your location (optional)
+            Retry
           </button>
-        )}
-        {locationStatus === "loading" && (
-          <span className="text-ink/50">Detecting location…</span>
-        )}
-        {locationStatus === "granted" && geo && (
-          <span className="font-medium text-ink">Location added ✓</span>
-        )}
-        {locationStatus === "denied" && (
-          <span className="text-ink/50">
-            Location unavailable — you can still submit
-          </span>
         )}
       </div>
 
-      {/* 1. Photo Capture Box */}
-      <div className="relative aspect-[4/3] bg-ink/5 border border-ink/20 overflow-hidden flex flex-col items-center justify-center">
+      {/* 1. Photo Capture Studio */}
+      <div className="relative aspect-[4/3] bg-ink/[0.035] border border-ink/12 rounded-2xl overflow-hidden flex flex-col items-center justify-center shadow-soft">
         {photoPreview ? (
           <div className="relative w-full h-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={photoPreview}
-              alt="Photo preview"
+              alt="Issue photo preview"
               className="w-full h-full object-cover"
             />
             <button
@@ -255,9 +321,10 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
                 setPhotoPreview(null);
                 setPhotoBlob(null);
               }}
-              className="absolute top-3 right-3 bg-paper/90 text-ink text-xs font-medium px-3 py-1.5 border border-ink/20 shadow-sm hover:bg-paper transition-colors"
+              className="absolute top-3 right-3 bg-paper/95 backdrop-blur-sm text-ink text-xs font-medium px-3 py-1.5 rounded-xl border border-ink/15 shadow-card hover:bg-paper transition-colors flex items-center gap-1.5"
             >
-              ↺ Change Photo
+              <RefreshCw size={12} />
+              <span>Change Photo</span>
             </button>
           </div>
         ) : cameraActive ? (
@@ -269,131 +336,156 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
               muted
               className="w-full h-full object-cover absolute inset-0"
             />
-            {/* Camera Overlay Controls */}
-            <div className="absolute bottom-4 inset-x-0 flex items-center justify-between px-6 z-20">
-              {/* Gallery button */}
+            <div className="absolute bottom-4 inset-x-0 flex items-center justify-between px-5 z-20">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-paper/90 text-ink px-3 py-1.5 text-xs font-medium border border-ink/20 shadow-sm hover:bg-paper"
+                className="bg-paper/95 backdrop-blur-sm text-ink px-3.5 py-2 rounded-xl text-xs font-medium border border-ink/15 shadow-card hover:bg-paper flex items-center gap-1.5"
               >
-                📁 Gallery
+                <FolderOpen size={14} />
+                <span>Gallery</span>
               </button>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-
-              {/* Big Shutter Button */}
               <button
                 type="button"
                 onClick={capturePhoto}
-                className="w-16 h-16 rounded-full border-4 border-paper bg-marigold active:scale-95 transition-transform flex items-center justify-center shadow-lg"
+                className="w-16 h-16 rounded-full border-4 border-paper bg-marigold active:scale-95 transition-transform flex items-center justify-center shadow-elevated"
                 aria-label="Take Photo"
               >
-                <div className="w-10 h-10 rounded-full bg-paper/30 pointer-events-none" />
+                <div className="w-11 h-11 rounded-full bg-paper/25 pointer-events-none" />
               </button>
 
               <button
                 type="button"
                 onClick={stopCamera}
-                className="bg-paper/90 text-ink px-3 py-1.5 text-xs font-medium border border-ink/20 shadow-sm hover:bg-paper"
+                className="bg-paper/95 backdrop-blur-sm text-ink px-3.5 py-2 rounded-xl text-xs font-medium border border-ink/15 shadow-card hover:bg-paper flex items-center gap-1.5"
               >
-                ✕ Close
+                <X size={14} />
+                <span>Close</span>
               </button>
             </div>
           </>
         ) : (
-          // Camera not started — show options to start camera or pick from gallery
-          <div className="flex flex-col items-center justify-center gap-4 p-6">
-            <div className="text-3xl text-ink/30">📷</div>
-            <p className="text-xs text-ink/60 text-center">
-              Take a photo of the issue or pick from your gallery
-            </p>
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col items-center justify-center gap-4 p-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-paper border border-ink/10 shadow-soft flex items-center justify-center text-ink/40">
+              <Camera size={26} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-ink">
+                Add a photo of the problem
+              </p>
+              <p className="text-xs text-ink/50">
+                Use your camera or choose from gallery
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={startCamera}
-                className="px-4 py-2.5 bg-marigold text-on-marigold text-xs font-semibold hover:bg-marigold/90 shadow-sm transition-colors"
+                className="px-4 py-2.5 bg-marigold text-on-marigold text-xs font-semibold rounded-xl hover:bg-marigold/90 shadow-soft transition-all active:scale-[0.98] flex items-center gap-1.5"
               >
-                Open Camera
+                <Camera size={14} />
+                <span>Open Camera</span>
               </button>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2.5 bg-paper text-ink text-xs font-medium border border-ink/25 hover:border-ink shadow-sm transition-colors"
+                className="px-4 py-2.5 bg-paper text-ink text-xs font-semibold rounded-xl border border-ink/15 hover:bg-ink/[0.03] shadow-soft transition-all flex items-center gap-1.5"
               >
-                📁 Gallery
+                <FolderOpen size={14} />
+                <span>Gallery</span>
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
             </div>
           </div>
         )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
       </div>
 
       {/* 2. Voice Note (Optional) */}
-      <div className="border border-ink/15 bg-paper p-4 space-y-3">
-        <div className="flex items-center justify-between">
+      <div className="rounded-2xl border border-ink/10 bg-paper p-4 space-y-3 shadow-soft">
+        <div className="flex items-center justify-between gap-2">
           <label className="text-xs font-semibold text-ink flex items-center gap-1.5">
-            <span>🎙</span>
-            <span>Record Voice Note (Optional)</span>
+            <Mic size={14} className="text-marigold" />
+            <span>Voice Note (Optional)</span>
           </label>
-          <span className="text-[11px] text-ink/50">
-            Speak in Hindi, English, etc.
+          <span className="text-[11px] text-ink/45">
+            Speak in Hindi or English
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <button
             type="button"
             onClick={toggleRecording}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-medium border transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl border transition-all active:scale-[0.98] ${
               isRecording
-                ? "bg-brick text-on-brick border-brick animate-pulse"
+                ? "bg-brick text-on-brick border-brick"
                 : voiceBlob
-                  ? "bg-pine text-on-pine border-pine"
-                  : "bg-paper text-ink border-ink/30 hover:border-ink"
+                  ? "bg-pine/10 text-pine border-pine/30"
+                  : "bg-paper text-ink border-ink/15 hover:border-ink/35"
             }`}
           >
-            <span>{isRecording ? "⏹" : voiceBlob ? "✓" : "●"}</span>
-            <span>
+            {isRecording ? (
+              <Square size={13} className="fill-current" />
+            ) : voiceBlob ? (
+              <Check size={14} />
+            ) : (
+              <Circle size={12} className="text-brick fill-brick" />
+            )}
+            <span className="tabular-nums">
               {isRecording
-                ? `Recording (${recordingSeconds}s) • Tap to Finish`
+                ? `Recording (${recordingSeconds}s) — Tap to Finish`
                 : voiceBlob
-                  ? "Voice Note Attached • Tap to Redo"
+                  ? "Voice Note Attached — Tap to Redo"
                   : "Tap to Speak"}
             </span>
           </button>
+
+          {voiceBlob && !isRecording && (
+            <button
+              type="button"
+              onClick={() => setVoiceBlob(null)}
+              className="text-xs text-ink/45 hover:text-brick font-medium transition-colors"
+            >
+              Remove
+            </button>
+          )}
         </div>
+
+        {micError && (
+          <p className="text-xs text-brick leading-relaxed">{micError}</p>
+        )}
       </div>
 
       {/* 3. Text Description */}
       <div className="space-y-1.5">
-        <label className="text-xs font-semibold text-ink block">
-          Describe the problem:
+        <label
+          htmlFor="report-description"
+          className="text-xs font-semibold text-ink block"
+        >
+          Describe the issue
         </label>
         <textarea
+          id="report-description"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="e.g. Water is leaking from the ceiling in Block B corridor, or lift #2 is making a strange noise..."
+          placeholder="e.g. Water leaking from the ceiling near Block B stairs, or lift #2 is stuck..."
           rows={3}
-          className="w-full text-xs p-3 bg-paper border border-ink/25 text-ink font-sans focus:outline-none focus:border-marigold placeholder:text-ink/40 transition-colors"
+          className="w-full text-sm p-3.5 bg-paper border border-ink/15 rounded-xl text-ink focus:outline-none focus:border-marigold focus:ring-2 focus:ring-marigold/15 placeholder:text-ink/35 transition-all"
         />
       </div>
 
       {submitError && (
-        <div className="p-3 bg-brick/10 border-l-4 border-brick text-xs text-brick font-medium">
-          {submitError}
+        <div className="flex items-start gap-2.5 p-3.5 bg-brick/10 border-l-4 border-brick rounded-xl text-xs text-brick font-medium">
+          <CircleAlert size={16} className="shrink-0 mt-0.5" />
+          <span>{submitError}</span>
         </div>
       )}
 
@@ -402,10 +494,19 @@ export function ReportComposer({ onSubmitted }: ReportComposerProps) {
         type="button"
         disabled={isSubmitting}
         onClick={handleSubmit}
-        className="w-full py-3.5 bg-marigold text-on-marigold font-bold text-sm tracking-wide disabled:opacity-50 hover:bg-marigold/90 active:scale-[0.99] transition-all shadow-sm flex items-center justify-center gap-2"
+        className="w-full py-3.5 px-5 bg-marigold text-on-marigold font-semibold text-sm rounded-xl disabled:opacity-50 hover:bg-marigold/90 active:scale-[0.99] transition-all shadow-soft flex items-center justify-center gap-2"
       >
-        <span>{isSubmitting ? "Submitting..." : "Submit Report"}</span>
-        <span>→</span>
+        {isSubmitting ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            <span>Submitting…</span>
+          </>
+        ) : (
+          <>
+            <span>Submit Report</span>
+            <ArrowRight size={16} />
+          </>
+        )}
       </button>
     </div>
   );

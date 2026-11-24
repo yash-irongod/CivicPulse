@@ -1,5 +1,6 @@
-// GET /api/admin/teams — Team Workload & Pending Verifications (Task 9.4, §7.3, §6.7).
-// Aggregates team workloads and lists incidents awaiting human resolution approval.
+// GET /api/admin/teams — Team Workload & Pending Verifications.
+// Aggregates team workloads and lists incidents awaiting human resolution approval
+// along with signed URLs for before/after resolution proof photos.
 
 import { NextResponse } from "next/server";
 
@@ -10,7 +11,11 @@ import {
 } from "@/lib/auth/guards";
 import { describeError, logEvent } from "@/lib/auth/log";
 import { getTeamWorkloadStats } from "@/lib/analytics/team-performance";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { EVIDENCE_BUCKET, getSignedUrls } from "@/lib/storage/signed-url";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+} from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -33,10 +38,8 @@ export async function GET(): Promise<Response> {
   }
 
   try {
-    // 1. Team workload stats
     const teams = await getTeamWorkloadStats(db, session.activeCommunityId);
 
-    // 2. Pending verifications: incidents at 'evidence_checked' or 'resolution_submitted'
     const { data: verifications, error: verifError } = await db
       .from("incidents")
       .select(
@@ -76,9 +79,32 @@ export async function GET(): Promise<Response> {
         | null;
     };
 
-    const formattedVerifications = (
-      (verifications as unknown as RawVerificationItem[]) || []
-    ).map((v) => {
+    const rawList = (verifications as unknown as RawVerificationItem[]) || [];
+
+    // Sign all before/after photo keys in one batch
+    const photoKeys: string[] = [];
+    for (const v of rawList) {
+      if (
+        v.resolution_before_photo &&
+        !photoKeys.includes(v.resolution_before_photo)
+      ) {
+        photoKeys.push(v.resolution_before_photo);
+      }
+      if (
+        v.resolution_after_photo &&
+        !photoKeys.includes(v.resolution_after_photo)
+      ) {
+        photoKeys.push(v.resolution_after_photo);
+      }
+    }
+
+    let urlMap: Record<string, string | null> = {};
+    if (photoKeys.length > 0) {
+      const admin = createSupabaseServiceRoleClient();
+      urlMap = await getSignedUrls(admin, EVIDENCE_BUCKET, photoKeys);
+    }
+
+    const formattedVerifications = rawList.map((v) => {
       const teamObj = Array.isArray(v.team) ? v.team[0] : v.team;
       return {
         id: v.id,
@@ -90,6 +116,12 @@ export async function GET(): Promise<Response> {
         resolutionNotes: v.resolution_note,
         beforePhotoPath: v.resolution_before_photo,
         afterPhotoPath: v.resolution_after_photo,
+        beforePhotoUrl: v.resolution_before_photo
+          ? (urlMap[v.resolution_before_photo] ?? null)
+          : null,
+        afterPhotoUrl: v.resolution_after_photo
+          ? (urlMap[v.resolution_after_photo] ?? null)
+          : null,
         aiEvidenceCheck: v.evidence_ai_check,
         createdAt: v.created_at,
       };

@@ -1,9 +1,5 @@
-// Admin Incident Detail Page.
-// Full incident view with linked issues, timeline, and administrative actions:
-// - Advance incident through lifecycle states
-// - Assign/reassign team and category
-// - Review and approve/reject resolution evidence
-// - View full audit trail
+// Admin Incident Detail — full incident view with admin actions.
+// Clean sections, modern cards, no ops-room jargon.
 
 "use client";
 
@@ -14,11 +10,14 @@ import {
   VerifyResolution,
   type PendingVerification,
 } from "@/components/admin/verify-resolution";
+import {
+  ArrowLeft,
+  Star,
+  AlertTriangle,
+  Circle,
+} from "@/components/shared/icons";
 
-// ---------------------------------------------------------------------------
 // Types
-// ---------------------------------------------------------------------------
-
 interface IncidentDetail {
   id: string;
   communityId: string;
@@ -75,10 +74,7 @@ interface FilterOption {
   name: string;
 }
 
-// ---------------------------------------------------------------------------
 // Constants
-// ---------------------------------------------------------------------------
-
 const STATUS_LABELS: Record<string, string> = {
   reported: "Reported",
   validated: "Validated",
@@ -88,29 +84,24 @@ const STATUS_LABELS: Record<string, string> = {
   resolution_submitted: "Resolution Submitted",
   evidence_checked: "Evidence Checked",
   resolved: "Resolved",
-  resident_feedback: "Awaiting Resident Feedback",
-  escalated: "Escalated — Admin Review",
+  resident_feedback: "Awaiting Feedback",
+  escalated: "Escalated",
   closed: "Closed",
 };
 
-const SEVERITY_COLORS: Record<string, string> = {
-  critical: "bg-brick text-paper",
-  high: "bg-marigold text-paper",
-  medium: "bg-ink/10 text-ink",
-  low: "bg-ink/5 text-ink/70",
+const SEVERITY_STYLES: Record<string, string> = {
+  critical: "bg-brick/10 text-brick",
+  high: "bg-marigold/10 text-marigold",
+  medium: "bg-ink/8 text-ink/70",
+  low: "bg-ink/5 text-ink/50",
 };
 
-// The allowed forward transitions an admin can trigger
 const ADMIN_TRANSITIONS: Record<
   string,
   { to: string; label: string; confirm?: string }[]
 > = {
   reported: [
-    {
-      to: "validated",
-      label: "Validate",
-      confirm: "Mark this incident as validated?",
-    },
+    { to: "validated", label: "Validate", confirm: "Mark as validated?" },
   ],
   validated: [
     {
@@ -122,31 +113,22 @@ const ADMIN_TRANSITIONS: Record<
   prioritized: [
     { to: "assigned", label: "Assign", confirm: "Advance to assigned?" },
   ],
-  evidence_checked: [
-    // Handled by VerifyResolution component instead
-  ],
+  evidence_checked: [],
   resolved: [{ to: "resident_feedback", label: "Request Resident Feedback" }],
-  resident_feedback: [
-    // Residents now rate with stars — ≥ 4 auto-closes, ≤ 3 auto-escalates.
-    // No manual admin transitions from this state.
-  ],
+  resident_feedback: [],
   escalated: [
     {
       to: "assigned",
       label: "Reopen for Rework",
-      confirm: "Reopen this incident and send it back for rework?",
+      confirm: "Reopen this incident for rework?",
     },
     {
       to: "closed",
       label: "Close (Override)",
-      confirm: "Close this incident despite the low rating?",
+      confirm: "Close despite the low rating?",
     },
   ],
 };
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export default function AdminIncidentDetailPage() {
   const params = useParams<{ id: string }>();
@@ -158,20 +140,15 @@ export default function AdminIncidentDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Admin action state
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [transitionNote, setTransitionNote] = useState("");
   const [showNoteFor, setShowNoteFor] = useState<string | null>(null);
 
-  // Assignment state
   const [categories, setCategories] = useState<FilterOption[]>([]);
   const [teams, setTeams] = useState<FilterOption[]>([]);
 
-  // -------------------------------------------
-  // Fetch data
-  // -------------------------------------------
   const fetchDetail = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -200,7 +177,6 @@ export default function AdminIncidentDetailPage() {
     fetchDetail();
   }, [fetchDetail]);
 
-  // Load filter options for assignment dropdowns
   useEffect(() => {
     async function loadFilters() {
       try {
@@ -238,9 +214,6 @@ export default function AdminIncidentDetailPage() {
     loadFilters();
   }, []);
 
-  // -------------------------------------------
-  // Transition
-  // -------------------------------------------
   async function handleTransition(toStatus: string) {
     setActionLoading(true);
     setActionError(null);
@@ -275,9 +248,6 @@ export default function AdminIncidentDetailPage() {
     }
   }
 
-  // -------------------------------------------
-  // Assignment update (team or category)
-  // -------------------------------------------
   async function handleAssign(
     field: "assignedTeamId" | "categoryId",
     value: string,
@@ -304,9 +274,6 @@ export default function AdminIncidentDetailPage() {
     }
   }
 
-  // -------------------------------------------
-  // Severity update
-  // -------------------------------------------
   async function handleSeverity(severity: string) {
     setActionLoading(true);
     setActionError(null);
@@ -328,15 +295,13 @@ export default function AdminIncidentDetailPage() {
     }
   }
 
-  // -------------------------------------------
-  // Loading / Error states
-  // -------------------------------------------
+  // Loading
   if (isLoading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-5 bg-ink/10 w-1/4 rounded" />
-        <div className="h-24 bg-ink/10 rounded" />
-        <div className="h-40 bg-ink/10 rounded" />
+        <div className="h-5 bg-ink/8 w-1/4 rounded-lg" />
+        <div className="h-24 bg-ink/6 rounded-xl" />
+        <div className="h-40 bg-ink/6 rounded-xl" />
       </div>
     );
   }
@@ -344,14 +309,15 @@ export default function AdminIncidentDetailPage() {
   if (error || !incident) {
     return (
       <div className="space-y-4">
-        <div className="p-4 bg-brick/10 border-l-4 border-brick text-sm text-brick">
+        <div className="p-4 bg-brick/8 border border-brick/15 rounded-xl text-sm text-brick">
           {error || "Incident not found."}
         </div>
         <Link
           href="/incidents"
-          className="text-sm text-ink/60 hover:text-ink underline"
+          className="text-sm text-ink/50 hover:text-ink inline-flex items-center gap-1 transition-colors"
         >
-          ← Back to incident queue
+          <ArrowLeft size={14} />
+          Back to incidents
         </Link>
       </div>
     );
@@ -364,31 +330,32 @@ export default function AdminIncidentDetailPage() {
   const isTerminal = incident.status === "closed";
 
   return (
-    <div className="space-y-6">
-      {/* Back link */}
+    <div className="space-y-6 pb-8">
+      {/* Back */}
       <Link
         href="/incidents"
-        className="text-xs text-ink/60 hover:text-ink underline"
+        className="text-sm text-ink/40 hover:text-ink inline-flex items-center gap-1.5 transition-colors"
       >
-        ← Back to incident queue
+        <ArrowLeft size={14} />
+        Back to incidents
       </Link>
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-mono text-xs font-semibold px-2 py-0.5 bg-ink/5 border border-ink/15 text-ink">
+            <span className="font-mono text-xs text-ink/40">
               #{incident.id.slice(0, 8)}
             </span>
             {incident.severity && (
               <span
-                className={`text-[10px] font-bold uppercase px-2 py-0.5 ${SEVERITY_COLORS[incident.severity] || "bg-ink/10 text-ink"}`}
+                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full ${SEVERITY_STYLES[incident.severity] || "bg-ink/8 text-ink/60"}`}
               >
                 {incident.severity}
               </span>
             )}
             {incident.categoryName && (
-              <span className="text-[11px] text-ink/60 bg-ink/5 px-2 py-0.5">
+              <span className="text-[11px] text-ink/50 bg-ink/4 px-2.5 py-0.5 rounded-full">
                 {incident.categoryName}
               </span>
             )}
@@ -398,18 +365,18 @@ export default function AdminIncidentDetailPage() {
           </h1>
         </div>
 
-        <div className="flex flex-col items-end gap-1 shrink-0">
-          <span className="text-sm font-semibold text-ink border border-ink/15 px-3 py-1">
+        <div className="flex flex-col items-start sm:items-end gap-1.5 shrink-0">
+          <span className="text-sm font-medium text-ink bg-ink/5 px-3 py-1.5 rounded-lg">
             {STATUS_LABELS[incident.status] || incident.status}
           </span>
           {incident.hoursRemaining !== null && !isTerminal && (
             <span
-              className={`text-[11px] font-mono px-2 py-0.5 ${
+              className={`text-xs font-medium px-2.5 py-1 rounded-full ${
                 incident.isOverdue
-                  ? "bg-brick/10 text-brick font-bold"
+                  ? "bg-brick/8 text-brick"
                   : incident.hoursRemaining < 2
-                    ? "bg-marigold/10 text-marigold font-semibold"
-                    : "bg-pine/10 text-pine"
+                    ? "bg-marigold/8 text-marigold"
+                    : "bg-pine/8 text-pine"
               }`}
             >
               {incident.isOverdue
@@ -420,36 +387,35 @@ export default function AdminIncidentDetailPage() {
         </div>
       </div>
 
-      {/* Action feedback */}
+      {/* Feedback notices */}
       {actionError && (
-        <div className="p-3 bg-brick/10 border-l-4 border-brick text-xs text-brick font-medium">
+        <div className="p-3 bg-brick/8 border border-brick/15 rounded-xl text-sm text-brick">
           {actionError}
         </div>
       )}
       {actionSuccess && (
-        <div className="p-3 bg-pine/10 border-l-4 border-pine text-xs text-pine font-medium">
+        <div className="p-3 bg-pine/8 border border-pine/15 rounded-xl text-sm text-pine">
           {actionSuccess}
         </div>
       )}
 
-      {/* Admin Assignment Panel */}
+      {/* Assignment panel */}
       {!isTerminal && (
-        <div className="border border-ink/10 bg-paper p-4 space-y-3">
-          <div className="text-[10px] font-semibold text-ink/50 uppercase tracking-wider">
-            Assignment & Classification
-          </div>
+        <div className="bg-paper border border-ink/8 rounded-2xl p-5 space-y-4 shadow-soft">
+          <h3 className="text-xs font-semibold text-ink/60">
+            Assignment & classification
+          </h3>
           <div className="flex flex-wrap gap-4">
-            {/* Category */}
-            <div className="space-y-1">
-              <label className="text-[10px] text-ink/60">Category</label>
+            <div className="space-y-1.5">
+              <label className="text-xs text-ink/50">Category</label>
               <select
                 value={incident.categoryId || ""}
                 onChange={(e) => handleAssign("categoryId", e.target.value)}
                 disabled={actionLoading}
-                className="text-xs p-2 border border-ink/15 bg-paper text-ink focus:outline-none focus:border-marigold min-w-[160px]"
+                className="text-sm p-2.5 border border-ink/10 bg-paper text-ink rounded-lg focus:outline-none focus:border-marigold/50 min-w-[160px]"
               >
                 <option value="">
-                  {incident.categoryName || "Select Category"}
+                  {incident.categoryName || "Select category"}
                 </option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -459,16 +425,15 @@ export default function AdminIncidentDetailPage() {
               </select>
             </div>
 
-            {/* Team */}
-            <div className="space-y-1">
-              <label className="text-[10px] text-ink/60">Assigned Team</label>
+            <div className="space-y-1.5">
+              <label className="text-xs text-ink/50">Team</label>
               <select
                 value={incident.teamId || ""}
                 onChange={(e) => handleAssign("assignedTeamId", e.target.value)}
                 disabled={actionLoading}
-                className="text-xs p-2 border border-ink/15 bg-paper text-ink focus:outline-none focus:border-marigold min-w-[160px]"
+                className="text-sm p-2.5 border border-ink/10 bg-paper text-ink rounded-lg focus:outline-none focus:border-marigold/50 min-w-[160px]"
               >
-                <option value="">{incident.teamName || "Select Team"}</option>
+                <option value="">{incident.teamName || "Select team"}</option>
                 {teams.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
@@ -477,16 +442,15 @@ export default function AdminIncidentDetailPage() {
               </select>
             </div>
 
-            {/* Severity */}
-            <div className="space-y-1">
-              <label className="text-[10px] text-ink/60">Severity</label>
+            <div className="space-y-1.5">
+              <label className="text-xs text-ink/50">Severity</label>
               <select
                 value={incident.severity || ""}
                 onChange={(e) => handleSeverity(e.target.value)}
                 disabled={actionLoading}
-                className="text-xs p-2 border border-ink/15 bg-paper text-ink focus:outline-none focus:border-marigold min-w-[120px]"
+                className="text-sm p-2.5 border border-ink/10 bg-paper text-ink rounded-lg focus:outline-none focus:border-marigold/50 min-w-[120px]"
               >
-                <option value="">Set Severity</option>
+                <option value="">Set severity</option>
                 <option value="critical">Critical</option>
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
@@ -497,12 +461,10 @@ export default function AdminIncidentDetailPage() {
         </div>
       )}
 
-      {/* Lifecycle Actions */}
+      {/* Lifecycle actions */}
       {availableTransitions.length > 0 && (
-        <div className="border border-ink/10 bg-paper p-4 space-y-3">
-          <div className="text-[10px] font-semibold text-ink/50 uppercase tracking-wider">
-            Advance Status
-          </div>
+        <div className="bg-paper border border-ink/8 rounded-2xl p-5 space-y-4 shadow-soft">
+          <h3 className="text-xs font-semibold text-ink/60">Advance status</h3>
           <div className="flex flex-wrap gap-3">
             {availableTransitions.map((t) => (
               <div key={t.to} className="space-y-2">
@@ -515,7 +477,7 @@ export default function AdminIncidentDetailPage() {
                     }
                   }}
                   disabled={actionLoading}
-                  className="py-2 px-4 bg-pine text-paper text-xs font-semibold hover:bg-pine/90 transition-colors disabled:opacity-50"
+                  className="py-2.5 px-5 bg-pine text-paper text-sm font-semibold rounded-lg hover:bg-pine/90 transition-all active:scale-[0.98] disabled:opacity-50"
                 >
                   {actionLoading ? "Updating…" : t.label}
                 </button>
@@ -526,12 +488,12 @@ export default function AdminIncidentDetailPage() {
                       placeholder="Optional note…"
                       value={transitionNote}
                       onChange={(e) => setTransitionNote(e.target.value)}
-                      className="text-xs p-2 border border-ink/15 bg-paper text-ink focus:outline-none flex-1"
+                      className="text-sm p-2.5 border border-ink/10 bg-paper text-ink rounded-lg focus:outline-none flex-1"
                     />
                     <button
                       onClick={() => handleTransition(t.to)}
                       disabled={actionLoading}
-                      className="py-2 px-3 bg-pine text-paper text-xs font-semibold disabled:opacity-50"
+                      className="py-2.5 px-4 bg-pine text-paper text-sm font-semibold rounded-lg disabled:opacity-50"
                     >
                       Confirm
                     </button>
@@ -540,7 +502,7 @@ export default function AdminIncidentDetailPage() {
                         setShowNoteFor(null);
                         setTransitionNote("");
                       }}
-                      className="py-2 px-2 text-xs text-ink/50 hover:text-ink"
+                      className="py-2.5 px-3 text-sm text-ink/40 hover:text-ink transition-colors"
                     >
                       Cancel
                     </button>
@@ -552,7 +514,7 @@ export default function AdminIncidentDetailPage() {
         </div>
       )}
 
-      {/* Verify Resolution (for evidence_checked / resolution_submitted) */}
+      {/* Verify resolution */}
       {showVerifyResolution && (
         <VerifyResolution
           item={
@@ -576,41 +538,48 @@ export default function AdminIncidentDetailPage() {
         />
       )}
 
-      {/* Escalation Review Card (shown when resident gave ≤ 3 stars) */}
+      {/* Escalation card */}
       {incident.status === "escalated" && (
-        <div className="border-2 border-marigold/40 bg-marigold/[0.04] p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-marigold/20 pb-3">
+        <div className="border border-marigold/20 bg-marigold/[0.03] rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-marigold" />
-              <span className="text-sm font-bold text-ink">
+              <AlertTriangle size={16} className="text-marigold" />
+              <span className="text-sm font-semibold text-ink">
                 Escalated by Resident
               </span>
             </div>
-            <span className="text-xs font-semibold text-marigold bg-marigold/10 px-2 py-0.5 border border-marigold/20">
-              Needs Admin Decision
+            <span className="text-xs font-medium text-marigold bg-marigold/10 px-2.5 py-1 rounded-full">
+              Needs decision
             </span>
           </div>
 
-          {/* Rating display */}
           {incident.feedbackRating !== null && (
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <span className="text-2xl tracking-wider">
-                  {"★".repeat(incident.feedbackRating)}
-                  {"☆".repeat(5 - incident.feedbackRating)}
-                </span>
-                <span className="text-sm font-semibold text-ink">
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <Star
+                      key={s}
+                      size={18}
+                      className={
+                        s <= incident.feedbackRating!
+                          ? "text-marigold fill-marigold"
+                          : "text-ink/15"
+                      }
+                    />
+                  ))}
+                </div>
+                <span className="text-sm font-medium text-ink">
                   {incident.feedbackRating}/5
                 </span>
               </div>
               {incident.feedbackComment && (
-                <div className="text-xs text-ink/80 bg-paper p-3 border border-ink/10">
-                  <strong>Resident&apos;s comment:</strong> &ldquo;
-                  {incident.feedbackComment}&rdquo;
+                <div className="text-sm text-ink/70 bg-paper p-3 rounded-lg border border-ink/6">
+                  &ldquo;{incident.feedbackComment}&rdquo;
                 </div>
               )}
               {incident.feedbackAt && (
-                <div className="text-[10px] text-ink/40">
+                <div className="text-[11px] text-ink/35">
                   Feedback submitted:{" "}
                   {new Date(incident.feedbackAt).toLocaleDateString("en-IN", {
                     day: "numeric",
@@ -624,23 +593,23 @@ export default function AdminIncidentDetailPage() {
             </div>
           )}
 
-          <p className="text-xs text-ink/60">
+          <p className="text-xs text-ink/50">
             The resident rated this work poorly. You can reopen the ticket for
             rework or close it if you believe the work was adequate.
           </p>
         </div>
       )}
 
-      {/* Linked Issues */}
+      {/* Linked issues */}
       {issues.length > 0 && (
         <div className="space-y-3">
-          <div className="text-[10px] font-semibold text-ink/50 uppercase tracking-wider">
-            Linked Resident Reports ({issues.length})
-          </div>
+          <h3 className="text-xs font-semibold text-ink/60">
+            Linked reports ({issues.length})
+          </h3>
           {issues.map((issue) => (
             <div
               key={issue.id}
-              className="p-4 border border-ink/10 bg-paper space-y-2"
+              className="p-4 border border-ink/8 bg-paper rounded-xl space-y-2"
             >
               {issue.rawText && (
                 <p className="text-sm text-ink leading-relaxed">
@@ -648,8 +617,8 @@ export default function AdminIncidentDetailPage() {
                 </p>
               )}
               {issue.rawTranscript && (
-                <div className="text-xs text-ink/70 bg-ink/[0.02] p-2 border-l-2 border-ink/10">
-                  <span className="font-semibold text-ink/50">
+                <div className="text-xs text-ink/60 bg-ink/[0.02] p-3 border-l-2 border-ink/8 rounded-r-lg">
+                  <span className="text-ink/40 font-medium">
                     Voice transcript:
                   </span>{" "}
                   {issue.rawTranscript}
@@ -671,21 +640,21 @@ export default function AdminIncidentDetailPage() {
                         <img
                           src={url}
                           alt={`Issue photo ${i + 1}`}
-                          className="w-20 h-20 object-cover border border-ink/10"
+                          className="w-20 h-20 object-cover border border-ink/8 rounded-lg"
                         />
                       </a>
                     ) : (
                       <div
                         key={i}
-                        className="w-20 h-20 bg-ink/5 border border-ink/10 flex-shrink-0 flex items-center justify-center text-[10px] text-ink/30"
+                        className="w-20 h-20 bg-ink/4 border border-ink/8 flex-shrink-0 flex items-center justify-center text-[10px] text-ink/25 rounded-lg"
                       >
-                        Photo unavailable
+                        No photo
                       </div>
                     );
                   })}
                 </div>
               )}
-              <div className="text-[10px] text-ink/40 flex gap-2 flex-wrap">
+              <div className="text-[11px] text-ink/35 flex gap-2 flex-wrap">
                 <span className="font-mono">#{issue.id.slice(0, 8)}</span>
                 {issue.reporterName && <span>by {issue.reporterName}</span>}
                 <span>
@@ -693,8 +662,6 @@ export default function AdminIncidentDetailPage() {
                     day: "numeric",
                     month: "short",
                     year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
                   })}
                 </span>
               </div>
@@ -706,25 +673,24 @@ export default function AdminIncidentDetailPage() {
       {/* Timeline */}
       {timeline.length > 0 && (
         <div className="space-y-3">
-          <div className="text-[10px] font-semibold text-ink/50 uppercase tracking-wider">
-            Audit Trail
-          </div>
-          <div className="border border-ink/10 bg-paper divide-y divide-ink/5">
+          <h3 className="text-xs font-semibold text-ink/60">Activity log</h3>
+          <div className="border border-ink/8 bg-paper rounded-xl divide-y divide-ink/5 overflow-hidden">
             {timeline.map((entry) => (
-              <div key={entry.id} className="p-3 flex gap-3 text-xs">
-                <div className="w-2 h-2 rounded-full bg-ink/20 mt-1 shrink-0" />
+              <div key={entry.id} className="p-4 flex gap-3">
+                <Circle
+                  size={8}
+                  className="text-ink/15 mt-1.5 shrink-0 fill-ink/15"
+                />
                 <div className="min-w-0 flex-1">
-                  <div className="font-medium text-ink">
+                  <div className="text-sm font-medium text-ink">
                     {entry.fromStatus
                       ? `${STATUS_LABELS[entry.fromStatus] || entry.fromStatus} → ${STATUS_LABELS[entry.toStatus] || entry.toStatus}`
                       : STATUS_LABELS[entry.toStatus] || entry.toStatus}
                   </div>
                   {entry.note && (
-                    <p className="text-ink/60 mt-0.5 break-words">
-                      {entry.note}
-                    </p>
+                    <p className="text-xs text-ink/50 mt-0.5">{entry.note}</p>
                   )}
-                  <div className="text-ink/40 mt-0.5">
+                  <div className="text-[11px] text-ink/30 mt-0.5">
                     {entry.actorName} ·{" "}
                     {new Date(entry.createdAt).toLocaleDateString("en-IN", {
                       day: "numeric",
@@ -740,8 +706,8 @@ export default function AdminIncidentDetailPage() {
         </div>
       )}
 
-      {/* Metadata footer */}
-      <div className="border-t border-ink/10 pt-3 text-[10px] text-ink/40 space-y-0.5">
+      {/* Metadata */}
+      <div className="border-t border-ink/6 pt-4 text-[11px] text-ink/30 space-y-0.5">
         <div>
           Created: {new Date(incident.createdAt).toLocaleString("en-IN")}
         </div>
@@ -755,7 +721,7 @@ export default function AdminIncidentDetailPage() {
             Closed: {new Date(incident.closedAt).toLocaleString("en-IN")}
           </div>
         )}
-        <div className="font-mono">Full ID: {incident.id}</div>
+        <div className="font-mono">ID: {incident.id}</div>
       </div>
     </div>
   );

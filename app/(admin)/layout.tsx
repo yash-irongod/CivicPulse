@@ -1,13 +1,17 @@
-// Admin Dashboard Layout (Task 9.1).
-// Server-side role check ensures only committee_admin users can access.
+// Admin Layout — responsive shell with dynamic society name & brand assets.
 
 import React from "react";
 import { AdminNav } from "@/components/admin/nav";
-import { requireLayoutRole } from "@/lib/auth/require-layout-role";
+import { CommunityShellProvider } from "@/components/shared/community-context";
+import {
+  getCommunityDisplayName,
+  requireLayoutRole,
+} from "@/lib/auth/require-layout-role";
+import { getResolvedAssets } from "@/lib/assets/manifest";
 
 export const metadata = {
-  title: "Nivas Operations Console",
-  description: "Residential operations, incident triage, and community health.",
+  title: "Nivas — Committee Admin",
+  description: "Manage your society, incidents, teams, and residents.",
 };
 
 export default async function AdminLayout({
@@ -15,15 +19,28 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Server-side role check — redirects if not committee_admin
-  await requireLayoutRole(["committee_admin"]);
+  const session = await requireLayoutRole(["committee_admin"]);
+  const [communityName, assets] = await Promise.all([
+    getCommunityDisplayName(session.activeCommunityId),
+    Promise.resolve(getResolvedAssets()),
+  ]);
 
   return (
-    <div className="min-h-screen bg-paper text-ink flex flex-row font-sans">
-      <AdminNav />
-      <main className="flex-1 min-w-0 p-8 overflow-y-auto">
-        <div className="max-w-6xl mx-auto">{children}</div>
-      </main>
-    </div>
+    <CommunityShellProvider communityName={communityName} assets={assets}>
+      <div className="min-h-screen bg-paper text-ink flex flex-row font-sans">
+        <AdminNav
+          communityName={communityName}
+          residentName={session.resident.displayName}
+          logoUrl={assets.logo}
+        />
+        <main className="flex-1 min-w-0 overflow-y-auto">
+          {/* Mobile spacer for fixed top bar */}
+          <div className="lg:hidden h-14" />
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+            {children}
+          </div>
+        </main>
+      </div>
+    </CommunityShellProvider>
   );
 }

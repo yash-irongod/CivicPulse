@@ -1,11 +1,21 @@
-// Admin Dashboard / Community Health Home Screen (Task 9.1, §7.3, §7.4).
-// Clean, elegant, executive overview for RWA committee members.
+// Admin Dashboard — society health overview.
+// Big score, metric cards, quick actions. Clean, modern, no jargon.
 
 "use client";
 
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { DashboardSkeleton } from "@/components/shared/skeletons/dashboard-skeleton";
+import {
+  ArrowRight,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+  ClipboardList,
+  MapPin,
+  Wrench,
+  BarChart3,
+} from "@/components/shared/icons";
 
 interface DashboardData {
   health: {
@@ -42,7 +52,7 @@ export default function AdminDashboardPage() {
     async function loadDashboard() {
       try {
         const res = await fetch("/api/admin/dashboard");
-        if (!res.ok) throw new Error("Failed to load operations dashboard.");
+        if (!res.ok) throw new Error("Failed to load dashboard.");
         const json = await res.json();
         setData(json);
       } catch (err: unknown) {
@@ -76,183 +86,162 @@ export default function AdminDashboardPage() {
     resolved30: 0,
   };
 
-  return (
-    <div className="space-y-10 max-w-5xl pb-12">
-      {/* 1. Header */}
-      <div className="border-b border-ink/10 pb-5">
-        <h1 className="text-2xl font-bold text-ink">
-          {getGreeting()}. Your society is
-        </h1>
-      </div>
+  const scoreColor =
+    score >= 80 ? "text-pine" : score >= 50 ? "text-marigold" : "text-brick";
 
-      {/* 2. Big Health Score */}
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-baseline gap-4 sm:gap-6">
-          <span className="text-8xl sm:text-9xl font-extralight tracking-tighter text-ink select-none font-sans leading-none">
-            {score}%
+  const metrics = [
+    {
+      label: "Resolution rate",
+      value: breakdown?.resolutionRateScore ?? 33,
+      max: 35,
+      detail: `${breakdown?.rawMetrics.resolvedTrailing30 ?? 0} of ${breakdown?.rawMetrics.totalTrailing30 ?? 0} closed`,
+    },
+    {
+      label: "SLA compliance",
+      value: breakdown?.slaComplianceScore ?? 28,
+      max: 30,
+      detail: `${breakdown?.rawMetrics.slaCompliantCount ?? 0} of ${breakdown?.rawMetrics.slaEvaluatedCount ?? 0} on time`,
+    },
+    {
+      label: "Overdue safety",
+      value: breakdown?.overdueSafetyScore ?? 19,
+      max: 20,
+      detail: `${breakdown?.rawMetrics.criticalOverdueCount ?? 0} critical overdue`,
+    },
+    {
+      label: "Backlog speed",
+      value: breakdown?.backlogVelocityScore ?? 14,
+      max: 15,
+      detail: `Avg ${breakdown?.rawMetrics.avgBacklogAgeDays ?? 0} days`,
+    },
+  ];
+
+  return (
+    <div className="space-y-8 pb-8">
+      {/* Greeting + score */}
+      <div className="space-y-6">
+        <div>
+          <p className="text-sm text-ink/50">{getGreeting()}</p>
+          <h1 className="text-2xl font-bold text-ink tracking-tight mt-0.5">
+            Society Health
+          </h1>
+        </div>
+
+        <div className="flex items-end gap-4">
+          <span
+            className={`text-7xl sm:text-8xl font-extralight tracking-tighter leading-none ${scoreColor}`}
+          >
+            {score}
           </span>
-          <div>
-            <span className="text-2xl sm:text-3xl font-light text-ink/80 block">
-              healthy today
-            </span>
+          <div className="pb-2">
+            <span className="text-2xl font-light text-ink/40">/ 100</span>
+            <p className="text-xs text-ink/40 mt-1">Health score</p>
           </div>
         </div>
 
-        {/* Counter chips */}
-        <div className="flex flex-wrap items-center gap-3 pt-3 text-xs">
-          <span className="flex items-center gap-2 px-3 py-1.5 border border-brick/30 bg-brick/5 font-medium">
-            <span className="w-2 h-2 rounded-full bg-brick" />
-            <strong className="text-brick">{counts.critical} critical</strong>
-          </span>
-
-          <span className="flex items-center gap-2 px-3 py-1.5 border border-marigold/30 bg-marigold/5 font-medium">
-            <span className="w-2 h-2 rounded-full bg-marigold" />
-            <span className="text-ink">{counts.open} active open</span>
-          </span>
-
-          <span className="flex items-center gap-2 px-3 py-1.5 border border-pine/30 bg-pine/5 font-medium">
-            <span className="w-2 h-2 rounded-full bg-pine" />
-            <span className="text-pine font-semibold">
-              {counts.resolved30} resolved (30d)
+        {/* Summary chips */}
+        <div className="flex flex-wrap items-center gap-2">
+          {counts.critical > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brick/8 text-brick text-xs font-medium rounded-full">
+              <AlertTriangle size={13} />
+              {counts.critical} critical
             </span>
+          )}
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-marigold/8 text-marigold text-xs font-medium rounded-full">
+            <Clock size={13} />
+            {counts.open} open
           </span>
-
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-pine/8 text-pine text-xs font-medium rounded-full">
+            <CheckCircle2 size={13} />
+            {counts.resolved30} resolved (30d)
+          </span>
           {counts.overdue > 0 && (
-            <span className="flex items-center gap-2 px-3 py-1.5 border border-brick bg-brick text-on-brick font-semibold animate-pulse">
-              <span>⚠ {counts.overdue} overdue</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brick text-on-brick text-xs font-semibold rounded-full">
+              <AlertTriangle size={13} />
+              {counts.overdue} overdue
             </span>
           )}
         </div>
       </div>
 
-      {/* 3. Quick Action Buttons */}
-      <div className="flex flex-wrap items-center gap-3 pt-2">
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-2">
         <Link
           href="/incidents"
-          className="px-5 py-2.5 bg-ink text-paper text-xs font-semibold hover:bg-ink/90 transition-all flex items-center gap-2 shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-ink text-paper text-sm font-medium rounded-lg hover:bg-ink/90 transition-all active:scale-[0.98]"
         >
-          <span>View Incident Queue ({counts.open})</span>
-          <span>→</span>
+          <ClipboardList size={15} />
+          Incidents ({counts.open})
+          <ArrowRight size={14} />
         </Link>
         <Link
           href="/map"
-          className="px-4 py-2.5 border border-ink/20 text-ink text-xs font-medium hover:border-ink hover:bg-ink/5 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-ink/10 text-ink text-sm font-medium rounded-lg hover:bg-ink/4 transition-colors"
         >
-          Society Map
+          <MapPin size={15} />
+          Map
         </Link>
         <Link
           href="/teams"
-          className="px-4 py-2.5 border border-ink/20 text-ink text-xs font-medium hover:border-ink hover:bg-ink/5 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-ink/10 text-ink text-sm font-medium rounded-lg hover:bg-ink/4 transition-colors"
         >
-          Teams & Proof
+          <Wrench size={15} />
+          Teams
         </Link>
         <Link
           href="/analytics"
-          className="px-4 py-2.5 border border-ink/20 text-ink text-xs font-medium hover:border-ink hover:bg-ink/5 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-ink/10 text-ink text-sm font-medium rounded-lg hover:bg-ink/4 transition-colors"
         >
-          Recurrence Trends
+          <BarChart3 size={15} />
+          Analytics
         </Link>
       </div>
 
-      {/* 4. Performance Factors Breakdown */}
-      <div className="border-t border-ink/15 pt-8 space-y-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-ink/70">
-          Performance Breakdown
-        </h3>
+      {/* Performance metrics */}
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold text-ink/60">
+          Performance breakdown
+        </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="border border-ink/15 p-5 bg-paper space-y-2 shadow-sm">
-            <span className="text-xs text-ink/70 font-medium block">
-              Resolution Rate (30d)
-            </span>
-            <div className="text-2xl font-light text-ink font-mono">
-              {breakdown?.resolutionRateScore ?? 33}{" "}
-              <span className="text-xs text-ink/40">/ 35</span>
-            </div>
-            <div className="w-full bg-ink/10 h-1 overflow-hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {metrics.map((m) => {
+            const pct = Math.round((m.value / m.max) * 100);
+            return (
               <div
-                className="bg-pine h-full"
-                style={{
-                  width: `${((breakdown?.resolutionRateScore ?? 33) / 35) * 100}%`,
-                }}
-              />
-            </div>
-            <p className="text-[11px] text-ink/50 pt-1">
-              {breakdown?.rawMetrics.resolvedTrailing30 ?? 41} of{" "}
-              {breakdown?.rawMetrics.totalTrailing30 ?? 44} closed
-            </p>
-          </div>
-
-          <div className="border border-ink/15 p-5 bg-paper space-y-2 shadow-sm">
-            <span className="text-xs text-ink/70 font-medium block">
-              SLA Compliance
-            </span>
-            <div className="text-2xl font-light text-ink font-mono">
-              {breakdown?.slaComplianceScore ?? 28}{" "}
-              <span className="text-xs text-ink/40">/ 30</span>
-            </div>
-            <div className="w-full bg-ink/10 h-1 overflow-hidden">
-              <div
-                className="bg-pine h-full"
-                style={{
-                  width: `${((breakdown?.slaComplianceScore ?? 28) / 30) * 100}%`,
-                }}
-              />
-            </div>
-            <p className="text-[11px] text-ink/50 pt-1">
-              {breakdown?.rawMetrics.slaCompliantCount ?? 38} of{" "}
-              {breakdown?.rawMetrics.slaEvaluatedCount ?? 41} on time
-            </p>
-          </div>
-
-          <div className="border border-ink/15 p-5 bg-paper space-y-2 shadow-sm">
-            <span className="text-xs text-ink/70 font-medium block">
-              Overdue Safety
-            </span>
-            <div className="text-2xl font-light text-ink font-mono">
-              {breakdown?.overdueSafetyScore ?? 19}{" "}
-              <span className="text-xs text-ink/40">/ 20</span>
-            </div>
-            <div className="w-full bg-ink/10 h-1 overflow-hidden">
-              <div
-                className="bg-pine h-full"
-                style={{
-                  width: `${((breakdown?.overdueSafetyScore ?? 19) / 20) * 100}%`,
-                }}
-              />
-            </div>
-            <p className="text-[11px] text-ink/50 pt-1">
-              {breakdown?.rawMetrics.criticalOverdueCount ?? 1} critical overdue
-            </p>
-          </div>
-
-          <div className="border border-ink/15 p-5 bg-paper space-y-2 shadow-sm">
-            <span className="text-xs text-ink/70 font-medium block">
-              Backlog Speed
-            </span>
-            <div className="text-2xl font-light text-ink font-mono">
-              {breakdown?.backlogVelocityScore ?? 14}{" "}
-              <span className="text-xs text-ink/40">/ 15</span>
-            </div>
-            <div className="w-full bg-ink/10 h-1 overflow-hidden">
-              <div
-                className="bg-pine h-full"
-                style={{
-                  width: `${((breakdown?.backlogVelocityScore ?? 14) / 15) * 100}%`,
-                }}
-              />
-            </div>
-            <p className="text-[11px] text-ink/50 pt-1">
-              Avg backlog: {breakdown?.rawMetrics.avgBacklogAgeDays ?? 1.8} days
-            </p>
-          </div>
+                key={m.label}
+                className="bg-paper border border-ink/8 rounded-xl p-5 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-ink/50 font-medium">
+                    {m.label}
+                  </span>
+                  <span className="text-xs text-ink/40">
+                    {m.value}/{m.max}
+                  </span>
+                </div>
+                <div className="w-full bg-ink/6 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${
+                      pct >= 80
+                        ? "bg-pine"
+                        : pct >= 50
+                          ? "bg-marigold"
+                          : "bg-brick"
+                    }`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-ink/40">{m.detail}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {error && (
-        <p className="text-xs text-brick border-l-2 border-brick pl-2">
+        <div className="p-3 bg-brick/8 border border-brick/15 rounded-xl text-sm text-brick">
           {error}
-        </p>
+        </div>
       )}
     </div>
   );

@@ -40,3 +40,23 @@ export async function requireLayoutRole(
 
   return session;
 }
+
+/**
+ * Resolves the active society/community display name cleanly via RLS-scoped query.
+ * Never throws; returns fallback "Nivas" if unavailable.
+ */
+export async function getCommunityDisplayName(
+  communityId: string,
+): Promise<string> {
+  try {
+    const client = await createSupabaseServerClient();
+    const { data } = await client
+      .from("communities")
+      .select("name")
+      .eq("id", communityId)
+      .maybeSingle();
+    return data?.name?.trim() || "Society";
+  } catch {
+    return "Society";
+  }
+}

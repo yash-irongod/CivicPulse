@@ -1,6 +1,5 @@
-// Severity Indicator (Task 10.3, §7.2, §7.7).
-// Strict adherence to §7.2: left-edge bar on a list row, NEVER a rounded colored chip with a dot.
-// Adheres to §7.7: severity is never conveyed by color alone — always paired with text label.
+// Severity Indicator — accessible visual severity badge + left-border helper.
+// Always pairs color with text label for accessibility (§7.2, §7.7).
 
 import React from "react";
 import type { Severity } from "@/lib/validation/transition";
@@ -13,27 +12,31 @@ interface SeverityIndicatorProps {
 
 const SEVERITY_CONFIG: Record<
   Severity,
-  { label: string; barClass: string; textClass: string }
+  { label: string; bgClass: string; textClass: string; dotClass: string }
 > = {
   critical: {
     label: "Critical",
-    barClass: "bg-brick",
+    bgClass: "bg-brick/10",
     textClass: "text-brick",
+    dotClass: "bg-brick",
   },
   high: {
     label: "High",
-    barClass: "bg-marigold",
+    bgClass: "bg-marigold/10",
     textClass: "text-marigold",
+    dotClass: "bg-marigold",
   },
   medium: {
     label: "Medium",
-    barClass: "bg-ink/40",
-    textClass: "text-ink/80",
+    bgClass: "bg-ink/8",
+    textClass: "text-ink/70",
+    dotClass: "bg-ink/40",
   },
   low: {
     label: "Low",
-    barClass: "bg-pine",
+    bgClass: "bg-pine/10",
     textClass: "text-pine",
+    dotClass: "bg-pine",
   },
 };
 
@@ -53,24 +56,19 @@ export function SeverityIndicator({
   const config = SEVERITY_CONFIG[normSeverity];
 
   return (
-    <div className={`inline-flex items-center gap-2 ${className}`}>
-      {/* Left-edge bar: 3px wide, solid, never a rounded pill */}
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium ${config.bgClass} ${config.textClass} ${className}`}
+    >
       <span
-        className={`w-[3px] h-4 self-stretch rounded-none ${config.barClass}`}
+        className={`w-1.5 h-1.5 rounded-full ${config.dotClass}`}
         aria-hidden="true"
       />
-      {showLabel && (
-        <span
-          className={`text-xs font-medium tracking-normal ${config.textClass}`}
-        >
-          {config.label}
-        </span>
-      )}
-    </div>
+      {showLabel && config.label}
+    </span>
   );
 }
 
-/** Left-edge border helper class for list item rows (§7.2 ops-room style) */
+/** Left-edge border helper class for list rows (§7.2) */
 export function getSeverityBorderClass(
   severity?: Severity | string | null,
 ): string {

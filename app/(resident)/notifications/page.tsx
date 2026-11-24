@@ -1,12 +1,21 @@
-// Resident Notifications Inbox Page (Task 8.4, §7.4, §7.6).
-// High-tactility Citizen Alert Feed with direct verification flow for resolved tickets.
+// Resident Notifications — clean update feed.
+// Real persistence for Mark All Read, star rating escalation flow, zero jargon.
 
 "use client";
 
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { FeedbackConfirm } from "@/components/resident/feedback-confirm";
 import { EmptyState } from "@/components/shared/empty-state";
+import { useCommunityShell } from "@/components/shared/community-context";
+import {
+  Bell,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  Star,
+} from "@/components/shared/icons";
 
 interface NotificationItem {
   id: string;
@@ -22,7 +31,26 @@ interface NotificationItem {
   created_at: string;
 }
 
+const DEFAULT_META: { icon: React.ReactNode; accent: string } = {
+  icon: <CheckCircle2 size={15} />,
+  accent: "border-l-pine bg-pine/[0.02]",
+};
+
+const TYPE_META: Record<string, { icon: React.ReactNode; accent: string }> = {
+  resolved_confirmation: {
+    icon: <Star size={15} />,
+    accent: "border-l-marigold bg-marigold/[0.03]",
+  },
+  sla_breach_imminent: {
+    icon: <AlertTriangle size={15} />,
+    accent: "border-l-brick bg-brick/[0.03]",
+  },
+  status_changed: DEFAULT_META,
+  incident_assigned: DEFAULT_META,
+};
+
 export default function ResidentNotificationsPage() {
+  const { assets } = useCommunityShell();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,18 +81,25 @@ export default function ResidentNotificationsPage() {
   }, []);
 
   const markAsRead = async (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
+    );
     try {
       await fetch(`/api/notifications/${id}/read`, { method: "PATCH" });
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
-      );
     } catch {
       // Best-effort
     }
   };
 
   const markAllRead = async () => {
+    const unread = notifications.filter((n) => !n.read);
+    if (unread.length === 0) return;
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    await Promise.allSettled(
+      unread.map((n) =>
+        fetch(`/api/notifications/${n.id}/read`, { method: "PATCH" }),
+      ),
+    );
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -81,19 +116,16 @@ export default function ResidentNotificationsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4 max-w-lg mx-auto">
-        <header className="border-b border-ink/10 pb-3">
-          <div className="h-4 bg-ink/10 w-1/3 mb-2 animate-pulse" />
-          <div className="h-3 bg-ink/5 w-2/3 animate-pulse" />
-        </header>
+      <div className="space-y-4">
+        <div className="h-6 bg-ink/8 w-32 rounded-lg animate-pulse" />
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="p-4 border border-ink/10 bg-paper space-y-2 animate-pulse"
+              className="p-5 border border-ink/8 rounded-2xl space-y-3 animate-pulse"
             >
-              <div className="h-4 bg-ink/10 w-1/4" />
-              <div className="h-3 bg-ink/10 w-3/4" />
+              <div className="h-4 bg-ink/8 w-1/4 rounded" />
+              <div className="h-3 bg-ink/6 w-3/4 rounded" />
             </div>
           ))}
         </div>
@@ -102,66 +134,73 @@ export default function ResidentNotificationsPage() {
   }
 
   return (
-    <div className="space-y-5 pb-16 max-w-lg mx-auto">
+    <div className="space-y-5 pb-4">
       {/* Header */}
-      <header className="border-b border-ink/10 pb-4">
+      <header className="space-y-4">
         <div className="flex items-center justify-between">
-          <div className="space-y-0.5">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-pine animate-pulse" />
-              <span className="text-[10px] font-mono uppercase tracking-widest text-pine font-bold">
-                COMMUNITY TELEMETRY FEED
-              </span>
-            </div>
-            <h1 className="text-xl font-bold text-ink tracking-tight font-sans">
-              Notifications & Alerts
-            </h1>
-          </div>
-
+          <h1 className="text-xl font-bold text-ink tracking-tight">Updates</h1>
           {unreadCount > 0 && (
             <button
               type="button"
               onClick={markAllRead}
-              className="text-[10px] font-mono text-ink/60 hover:text-ink underline"
+              className="text-xs text-ink/55 hover:text-ink font-medium transition-colors"
             >
               Mark all read
             </button>
           )}
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-ink/10">
+        {/* Animated filter tabs */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setActiveFilter("all")}
-            className={`text-xs font-mono font-medium px-3 py-1 border transition-all ${
+            className={`relative text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors ${
               activeFilter === "all"
-                ? "bg-ink text-paper border-ink"
-                : "bg-paper text-ink/70 border-ink/20 hover:border-ink/40"
+                ? "text-paper"
+                : "bg-ink/5 text-ink/65 hover:bg-ink/8"
             }`}
           >
-            All Feed ({notifications.length})
+            {activeFilter === "all" && (
+              <motion.span
+                layoutId="notif-filter-pill"
+                transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                className="absolute inset-0 rounded-full bg-ink"
+              />
+            )}
+            <span className="relative z-10">All ({notifications.length})</span>
           </button>
+
           <button
             type="button"
             onClick={() => setActiveFilter("actions")}
-            className={`text-xs font-mono font-medium px-3 py-1 border transition-all flex items-center gap-1.5 ${
+            className={`relative text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors flex items-center gap-1.5 ${
               activeFilter === "actions"
-                ? "bg-marigold text-on-marigold border-marigold"
-                : "bg-paper text-ink/70 border-ink/20 hover:border-marigold"
+                ? "text-on-marigold"
+                : "bg-ink/5 text-ink/65 hover:bg-ink/8"
             }`}
           >
-            <span>Action Required</span>
-            {actionRequiredCount > 0 && (
-              <span className="w-1.5 h-1.5 rounded-full bg-marigold animate-ping" />
+            {activeFilter === "actions" && (
+              <motion.span
+                layoutId="notif-filter-pill"
+                transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                className="absolute inset-0 rounded-full bg-marigold"
+              />
             )}
-            <span>({actionRequiredCount})</span>
+            <span className="relative z-10 flex items-center gap-1.5">
+              <span>Action needed</span>
+              {actionRequiredCount > 0 && (
+                <span className="w-4 h-4 text-[10px] font-bold bg-paper/20 rounded-full flex items-center justify-center">
+                  {actionRequiredCount}
+                </span>
+              )}
+            </span>
           </button>
         </div>
       </header>
 
       {error && (
-        <div className="p-3 bg-brick/10 border-l-4 border-brick text-xs text-brick font-mono">
+        <div className="p-3 bg-brick/8 border border-brick/15 rounded-xl text-sm text-brick">
           {error}
         </div>
       )}
@@ -169,27 +208,24 @@ export default function ResidentNotificationsPage() {
       {filteredNotifications.length === 0 ? (
         <EmptyState
           title={
-            activeFilter === "actions" ? "No Actions Required" : "All caught up"
+            activeFilter === "actions" ? "No actions needed" : "All caught up"
           }
           description={
             activeFilter === "actions"
-              ? "You have no pending incident resolution confirmations at this time."
-              : "You have no unread notifications or society updates right now."
+              ? "No pending work verifications right now."
+              : "No new updates at the moment."
           }
+          imageSrc={assets.emptyNotifications}
+          imageAlt="All caught up illustration"
+          icon={<Bell size={44} />}
         />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {filteredNotifications.map((item) => {
             const isResolvedConfirmation =
               item.type === "resolved_confirmation";
-            const isSlaBreach = item.type === "sla_breach_imminent";
             const incidentId = item.payload?.incidentId as string | undefined;
-
-            const borderLeft = isResolvedConfirmation
-              ? "border-l-4 border-l-marigold"
-              : isSlaBreach
-                ? "border-l-4 border-l-brick"
-                : "border-l-4 border-l-pine";
+            const meta = TYPE_META[item.type] ?? DEFAULT_META;
 
             return (
               <div
@@ -197,41 +233,33 @@ export default function ResidentNotificationsPage() {
                 onClick={() => {
                   if (!item.read) markAsRead(item.id);
                 }}
-                className={`p-4 border ${borderLeft} transition-all duration-200 ${
-                  item.read
-                    ? "border-ink/15 bg-paper"
-                    : "border-ink/30 bg-ink/[0.02] shadow-sm"
-                }`}
+                className={`border border-ink/8 border-l-4 rounded-2xl p-4 transition-all duration-200 ${
+                  meta.accent
+                } ${!item.read ? "shadow-soft" : "opacity-80"}`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2">
-                      {!item.read && (
-                        <span className="w-2 h-2 rounded-full bg-marigold shrink-0" />
-                      )}
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-ink/60 font-semibold">
-                        {item.type.replace(/_/g, " ")}
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 text-ink/45">{meta.icon}</div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-sm font-medium text-ink leading-snug">
+                        {item.title}
+                      </h3>
+                      <span className="text-[10px] text-ink/40 shrink-0 mt-0.5 tabular-nums">
+                        {new Date(item.created_at).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                        })}
                       </span>
                     </div>
-                    <h3 className="text-xs font-bold text-ink leading-snug">
-                      {item.title}
-                    </h3>
-                    <p className="text-xs text-ink/80 leading-relaxed font-sans">
+                    <p className="text-xs text-ink/60 leading-relaxed">
                       {item.body}
                     </p>
                   </div>
-
-                  <span className="text-[10px] text-ink/50 font-mono shrink-0 whitespace-nowrap">
-                    {new Date(item.created_at).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                    })}
-                  </span>
                 </div>
 
-                {/* Direct Action for Resolved Incident Confirmation */}
+                {/* Action: Rate work */}
                 {isResolvedConfirmation && incidentId && (
-                  <div className="mt-3 pt-3 border-t border-ink/10">
+                  <div className="mt-3 pt-3 border-t border-ink/6">
                     {activeFeedbackIncidentId === incidentId ? (
                       <FeedbackConfirm
                         incidentId={incidentId}
@@ -250,24 +278,24 @@ export default function ResidentNotificationsPage() {
                           setActiveFeedbackIncidentId(incidentId);
                           markAsRead(item.id);
                         }}
-                        className="w-full py-2 px-3 bg-pine text-on-pine text-xs font-mono font-bold uppercase tracking-wider hover:bg-pine/90 shadow-sm flex items-center justify-center gap-2 transition-all"
+                        className="w-full py-2.5 bg-pine text-on-pine text-sm font-semibold rounded-xl hover:bg-pine/90 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                       >
-                        <span>✓</span>
-                        <span>VERIFY RESOLUTION & CLOSE TICKET</span>
+                        <Star size={15} />
+                        <span>Rate the Work</span>
                       </button>
                     )}
                   </div>
                 )}
 
-                {/* Link to reports for other incident updates */}
+                {/* Link to reports */}
                 {!isResolvedConfirmation && incidentId && (
-                  <div className="mt-3 pt-2 border-t border-ink/10 flex justify-end">
+                  <div className="mt-3 pt-2 border-t border-ink/5 flex justify-end">
                     <Link
                       href="/my-reports"
-                      className="text-[11px] font-mono text-marigold hover:underline flex items-center gap-1 font-semibold"
+                      className="text-xs text-marigold hover:text-marigold/80 font-medium flex items-center gap-1 transition-colors"
                     >
-                      <span>TRACK INCIDENT STATUS</span>
-                      <span>→</span>
+                      <span>View report</span>
+                      <ArrowRight size={12} />
                     </Link>
                   </div>
                 )}

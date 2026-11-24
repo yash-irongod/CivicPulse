@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { Ink } from "@/lib/design/tokens";
 import { ServiceWorkerRegistrar } from "@/lib/pwa/register";
+import { MotionProvider } from "@/components/shared/motion-provider";
 
 const APP_NAME = "Nivas";
 const APP_DESCRIPTION =
@@ -154,8 +155,10 @@ export default function RootLayout({
       <body
         className={`${plexSans.variable} ${plexSansDevanagari.variable} ${plexMono.variable} antialiased`}
       >
-        <ServiceWorkerRegistrar />
-        {children}
+        <MotionProvider>
+          <ServiceWorkerRegistrar />
+          {children}
+        </MotionProvider>
       </body>
     </html>
   );
