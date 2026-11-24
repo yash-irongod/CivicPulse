@@ -7,7 +7,9 @@ export type NotificationType =
   | "status_changed"
   | "sla_breach_imminent"
   | "resolved_confirmation"
-  | "daily_digest";
+  | "daily_digest"
+  | "feedback_received"
+  | "escalated";
 
 export interface IncidentAssignedPayload {
   incidentId: string;
@@ -37,12 +39,26 @@ export interface DailyDigestPayload {
   resolvedTodayCount: number;
 }
 
+export interface FeedbackReceivedPayload {
+  incidentId: string;
+  rating: number;
+  comment?: string;
+}
+
+export interface EscalatedPayload {
+  incidentId: string;
+  rating: number;
+  comment?: string;
+}
+
 export type NotificationPayloadMap = {
   incident_assigned: IncidentAssignedPayload;
   status_changed: StatusChangedPayload;
   sla_breach_imminent: SlaBreachImminentPayload;
   resolved_confirmation: ResolvedConfirmationPayload;
   daily_digest: DailyDigestPayload;
+  feedback_received: FeedbackReceivedPayload;
+  escalated: EscalatedPayload;
 };
 
 export interface RenderedTemplate {
@@ -62,6 +78,10 @@ const STATUS_LABELS: Record<string, { en: string; hi: string }> = {
   resident_feedback: {
     en: "Awaiting your feedback",
     hi: "आपकी प्रतिक्रिया की प्रतीक्षा",
+  },
+  escalated: {
+    en: "Escalated to admin",
+    hi: "व्यवस्थापक को भेजा गया",
   },
   closed: { en: "Closed", hi: "बंद" },
 };
@@ -140,6 +160,36 @@ export function renderNotification<T extends NotificationType>(
       return {
         title: "Daily community operations digest",
         body: `${p.openCount} open incidents (${p.criticalCount} critical, ${p.overdueCount} overdue). ${p.resolvedTodayCount} resolved today.`,
+      };
+    }
+
+    case "feedback_received": {
+      const p = payload as FeedbackReceivedPayload;
+      const stars = "★".repeat(p.rating) + "☆".repeat(5 - p.rating);
+      if (lang === "hi") {
+        return {
+          title: "निवासी प्रतिक्रिया प्राप्त",
+          body: `निवासी ने ${stars} (${p.rating}/5) रेटिंग दी।${p.comment ? ` टिप्पणी: "${p.comment}"` : ""}`,
+        };
+      }
+      return {
+        title: "Resident feedback received",
+        body: `Resident rated the work ${stars} (${p.rating}/5).${p.comment ? ` Comment: "${p.comment}"` : ""}`,
+      };
+    }
+
+    case "escalated": {
+      const p = payload as EscalatedPayload;
+      const stars = "★".repeat(p.rating) + "☆".repeat(5 - p.rating);
+      if (lang === "hi") {
+        return {
+          title: "शिकायत बढ़ाई गई — समीक्षा आवश्यक",
+          body: `निवासी ने ${stars} (${p.rating}/5) रेटिंग दी। कृपया समीक्षा करें और कार्रवाई करें।`,
+        };
+      }
+      return {
+        title: "Incident escalated — review required",
+        body: `Resident gave a low rating ${stars} (${p.rating}/5). Please review and decide: reopen or close.${p.comment ? ` Comment: "${p.comment}"` : ""}`,
       };
     }
 

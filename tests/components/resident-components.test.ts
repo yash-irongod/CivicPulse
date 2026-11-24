@@ -8,7 +8,7 @@ import { getSeverityBorderClass } from "../../components/shared/severity-indicat
 
 describe("Resident Components & Helpers", () => {
   describe("IncidentTimeline", () => {
-    it("maps all 10 states to human-readable labels", () => {
+    it("maps all 11 states to human-readable labels", () => {
       expect(STATUS_LABELS["reported"]).toBe("Report Received");
       expect(STATUS_LABELS["validated"]).toBe("Verified by Society");
       expect(STATUS_LABELS["assigned"]).toBe("Assigned to Team");
@@ -19,6 +19,7 @@ describe("Resident Components & Helpers", () => {
       expect(STATUS_LABELS["evidence_checked"]).toBe("Inspection Verified");
       expect(STATUS_LABELS["resolved"]).toBe("Resolved");
       expect(STATUS_LABELS["resident_feedback"]).toBe("Awaiting Your Feedback");
+      expect(STATUS_LABELS["escalated"]).toBe("Under Admin Review");
       expect(STATUS_LABELS["closed"]).toBe("Closed");
     });
 
@@ -30,6 +31,7 @@ describe("Resident Components & Helpers", () => {
       expect(getStatusStepIndex("evidence_checked")).toBe(2);
       expect(getStatusStepIndex("resolved")).toBe(3);
       expect(getStatusStepIndex("resident_feedback")).toBe(3);
+      expect(getStatusStepIndex("escalated")).toBe(3);
       expect(getStatusStepIndex("closed")).toBe(4);
     });
   });

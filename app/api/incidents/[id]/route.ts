@@ -16,7 +16,15 @@ import {
 } from "@/lib/auth/guards";
 import { describeError, logEvent } from "@/lib/auth/log";
 import { hoursRemaining } from "@/lib/lifecycle/sla";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  EVIDENCE_BUCKET,
+  getSignedUrl,
+  getSignedUrls,
+} from "@/lib/storage/signed-url";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+} from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +78,9 @@ export async function GET(
         resolution_after_photo,
         resolution_note,
         evidence_ai_check,
+        feedback_rating,
+        feedback_comment,
+        feedback_at,
         category:categories(id, name),
         team:teams(id, name)
       `,
@@ -209,6 +220,49 @@ export async function GET(
       },
     );
 
+    // Generate signed download URLs for all photos in one batch.
+    // Uses the service-role client to bypass storage RLS (server-side only).
+    const admin = createSupabaseServiceRoleClient();
+
+    // Collect all unique photo paths from issues
+    const allPhotoPaths: string[] = [];
+    for (const iss of issues) {
+      if (iss && "photoPaths" in iss) {
+        const paths = (iss as { photoPaths: string[] }).photoPaths;
+        for (const p of paths) {
+          if (p && !allPhotoPaths.includes(p)) allPhotoPaths.push(p);
+        }
+      }
+    }
+
+    const photoUrlMap = await getSignedUrls(
+      admin,
+      EVIDENCE_BUCKET,
+      allPhotoPaths,
+    );
+
+    // Map signed URLs back onto each issue
+    const issuesWithUrls = (issues as Array<Record<string, unknown>>).map(
+      (iss) => ({
+        ...iss,
+        photoUrls: ((iss.photoPaths as string[]) || []).map(
+          (p: string) => photoUrlMap[p] ?? null,
+        ),
+      }),
+    );
+
+    // Generate signed URLs for resolution before/after photos
+    const resolutionBeforePhotoUrl = await getSignedUrl(
+      admin,
+      EVIDENCE_BUCKET,
+      incident.resolution_before_photo,
+    );
+    const resolutionAfterPhotoUrl = await getSignedUrl(
+      admin,
+      EVIDENCE_BUCKET,
+      incident.resolution_after_photo,
+    );
+
     return json(
       {
         incident: {
@@ -230,10 +284,15 @@ export async function GET(
           possibleDuplicateOf: incident.possible_duplicate_of,
           resolutionBeforePhoto: incident.resolution_before_photo,
           resolutionAfterPhoto: incident.resolution_after_photo,
+          resolutionBeforePhotoUrl,
+          resolutionAfterPhotoUrl,
           resolutionNote: incident.resolution_note,
           evidenceAiCheck: incident.evidence_ai_check,
+          feedbackRating: incident.feedback_rating ?? null,
+          feedbackComment: incident.feedback_comment ?? null,
+          feedbackAt: incident.feedback_at ?? null,
         },
-        issues,
+        issues: issuesWithUrls,
         timeline,
       },
       200,

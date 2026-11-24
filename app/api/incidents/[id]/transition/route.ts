@@ -28,6 +28,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/auth/guards";
 import { describeError, logEvent } from "@/lib/auth/log";
+import { dispatchTransitionNotifications } from "@/lib/notify/incident-notify";
 import { transitionIncident } from "@/lib/lifecycle/state-machine";
 import {
   createSupabaseServerClient,
@@ -106,7 +107,32 @@ export async function POST(
   );
 
   switch (result.kind) {
-    case "transitioned":
+    case "transitioned": {
+      // Fire-and-forget notification dispatch
+      if (result.fromStatus !== result.toStatus) {
+        (async () => {
+          let teamName: string | null = null;
+          if (parsed.data.assignedTeamId) {
+            const { data: team } = await admin
+              .from("teams")
+              .select("name")
+              .eq("id", parsed.data.assignedTeamId)
+              .maybeSingle();
+            teamName = team?.name ?? null;
+          }
+
+          await dispatchTransitionNotifications(admin, {
+            incidentId: result.incidentId,
+            fromStatus: result.fromStatus,
+            toStatus: result.toStatus,
+            communityId: session.activeCommunityId,
+            assignedTeamName: teamName,
+          });
+        })().catch((err) => {
+          logEvent("warn", "transition.notify_failed", describeError(err));
+        });
+      }
+
       return json(
         {
           incidentId: result.incidentId,
@@ -116,6 +142,7 @@ export async function POST(
         },
         200,
       );
+    }
     case "invalid_transition":
       return json(
         {

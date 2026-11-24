@@ -3,6 +3,7 @@
 // Respects resident preferred_language and logs external calls safely.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { sendNotification, setVapidDetails } from "web-push";
 
 import { describeError, logEvent } from "../auth/log";
 import {
@@ -62,30 +63,56 @@ async function sendEmailFallback(params: {
 }
 
 /**
- * Dispatch web push notification to a stored subscription endpoint.
+ * Dispatch web push notification to a stored subscription using VAPID encryption (RFC 8291/8292).
  */
 async function sendWebPush(subscription: {
   endpoint: string;
+  p256dh: string;
+  auth: string;
   title: string;
   body: string;
+  url?: string;
 }): Promise<boolean> {
+  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  const subject = process.env.VAPID_SUBJECT || "mailto:notifications@nivas.app";
+
+  if (!publicKey || !privateKey) {
+    logEvent("info", "notify.push_skipped_no_vapid_keys", {
+      endpoint: subscription.endpoint.slice(0, 30),
+    });
+    return false;
+  }
+
   try {
-    const res = await fetch(subscription.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        TTL: "86400",
+    setVapidDetails(subject, publicKey, privateKey);
+
+    const pushSubscription = {
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: subscription.p256dh,
+        auth: subscription.auth,
       },
-      body: JSON.stringify({
-        title: subscription.title,
-        body: subscription.body,
-        icon: "/icons/icon-192.png",
-      }),
+    };
+
+    const payload = JSON.stringify({
+      title: subscription.title,
+      body: subscription.body,
+      icon: "/icons/icon-192.png",
+      url: subscription.url || "/",
     });
 
-    return res.ok;
-  } catch (err) {
-    logEvent("warn", "notify.push_network_failed", describeError(err));
+    await sendNotification(pushSubscription, payload, {
+      TTL: 86400,
+    });
+
+    return true;
+  } catch (err: unknown) {
+    const error = err as { statusCode?: number };
+    logEvent("warn", "notify.push_network_failed", {
+      statusCode: error?.statusCode,
+      ...describeError(err),
+    });
     return false;
   }
 }
@@ -172,6 +199,8 @@ export async function notify<T extends NotificationType>(
       for (const sub of subs) {
         const sent = await sendWebPush({
           endpoint: sub.endpoint,
+          p256dh: sub.p256dh,
+          auth: sub.auth,
           title,
           body,
         });

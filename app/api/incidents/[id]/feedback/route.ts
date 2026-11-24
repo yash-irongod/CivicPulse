@@ -1,6 +1,7 @@
-// POST /api/incidents/[id]/feedback — Resident Confirmation / Dispute (Task 8.4, §6.5, §6.7).
-// Lets the resident close the incident (confirmed: true -> closed)
-// or dispute and reopen it (confirmed: false -> assigned).
+// POST /api/incidents/[id]/feedback — Resident Star Rating Feedback.
+// Lets the resident rate the resolution (1–5 stars) with an optional comment.
+// Rating ≥ 4 → closed (happy). Rating ≤ 3 → escalated to admin for review.
+// Residents do NOT have direct reopen power — only admin decides after escalation.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
@@ -11,6 +12,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/auth/guards";
 import { describeError, logEvent } from "@/lib/auth/log";
+import { notifyAdmins, notifyReporters } from "@/lib/notify/incident-notify";
 import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
@@ -21,8 +23,8 @@ export const dynamic = "force-dynamic";
 type RouteContext = { params: Promise<{ id: string }> };
 
 const feedbackInputSchema = z.object({
-  confirmed: z.boolean(),
-  comment: z.string().optional(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().max(1000).optional(),
 });
 
 function json(body: Record<string, unknown>, status: number): NextResponse {
@@ -91,7 +93,7 @@ export async function POST(
       p_category_id: null,
       p_assigned_team_id: null,
       p_severity: null,
-      p_note: "Awaiting resident confirmation.",
+      p_note: "Awaiting resident feedback.",
     });
 
     if (prepError) {
@@ -115,13 +117,36 @@ export async function POST(
     );
   }
 
-  // 2. Perform target transition:
-  // confirmed = true -> closed
-  // confirmed = false -> assigned (the documented reopen move per §6.5, §8.4)
-  const targetStatus = body.confirmed ? "closed" : "assigned";
-  const note = body.confirmed
-    ? `Resident confirmed resolution: ${body.comment || "Confirmed fixed."}`
-    : `Resident disputed resolution: ${body.comment || "Problem reported as still unresolved."}`;
+  // 2. Save feedback rating and comment on the incident
+  const { error: feedbackUpdateErr } = await admin
+    .from("incidents")
+    .update({
+      feedback_rating: body.rating,
+      feedback_comment: body.comment?.trim() || null,
+      feedback_at: new Date().toISOString(),
+      feedback_resident_id: session.resident.id,
+    })
+    .eq("id", incidentId);
+
+  if (feedbackUpdateErr) {
+    logEvent(
+      "error",
+      "feedback.update_failed",
+      describeError(feedbackUpdateErr),
+    );
+    return json({ error: "server_error" }, 500);
+  }
+
+  // 3. Determine target status based on rating
+  // ≥ 4 stars: resident is satisfied → close the ticket
+  // ≤ 3 stars: resident is not satisfied → escalate to admin
+  const isHappy = body.rating >= 4;
+  const targetStatus = isHappy ? "closed" : "escalated";
+  const ratingStars = "★".repeat(body.rating) + "☆".repeat(5 - body.rating);
+
+  const note = isHappy
+    ? `Resident rated ${ratingStars} (${body.rating}/5): ${body.comment || "Satisfied with the work."}`
+    : `Resident rated ${ratingStars} (${body.rating}/5): ${body.comment || "Not satisfied."} — Escalated to admin for review.`;
 
   const { error: transitionErr } = await admin.rpc("transition_incident", {
     p_incident_id: incidentId,
@@ -142,10 +167,36 @@ export async function POST(
     return json({ error: "transition_failed" }, 500);
   }
 
-  // 3. Notify community / team if disputed
-  if (!body.confirmed) {
-    logEvent("info", "incident.disputed_and_reopened", {
+  // 4. Dispatch notifications (fire-and-forget)
+  (async () => {
+    if (!isHappy) {
+      await notifyAdmins(admin, incident.community_id, "escalated", {
+        incidentId,
+        rating: body.rating,
+        comment: body.comment,
+      });
+    } else {
+      await notifyAdmins(admin, incident.community_id, "feedback_received", {
+        incidentId,
+        rating: body.rating,
+        comment: body.comment,
+      });
+    }
+
+    await notifyReporters(admin, incidentId, "status_changed", {
       incidentId,
+      fromStatus: "resident_feedback",
+      toStatus: targetStatus,
+    });
+  })().catch((err) => {
+    logEvent("warn", "feedback.notify_failed", describeError(err));
+  });
+
+  // 5. Log escalation if applicable
+  if (!isHappy) {
+    logEvent("info", "incident.escalated_by_feedback", {
+      incidentId,
+      rating: body.rating,
       residentId: session.resident.id,
     });
   }
@@ -155,7 +206,8 @@ export async function POST(
       success: true,
       incidentId,
       status: targetStatus,
-      reopened: !body.confirmed,
+      rating: body.rating,
+      escalated: !isHappy,
     },
     200,
   );

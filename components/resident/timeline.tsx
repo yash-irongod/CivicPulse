@@ -29,6 +29,7 @@ export const STATUS_LABELS: Record<string, string> = {
   evidence_checked: "Inspection Verified",
   resolved: "Resolved",
   resident_feedback: "Awaiting Your Feedback",
+  escalated: "Under Admin Review",
   closed: "Closed",
 };
 
@@ -55,6 +56,7 @@ export function getStatusStepIndex(status: string): number {
       return 2;
     case "resolved":
     case "resident_feedback":
+    case "escalated":
       return 3;
     case "closed":
       return 4;

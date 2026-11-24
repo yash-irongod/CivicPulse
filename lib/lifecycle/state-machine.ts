@@ -47,8 +47,11 @@ const TRANSITIONS: Readonly<Record<IncidentStatus, readonly IncidentStatus[]>> =
     resolution_submitted: ["evidence_checked", "assigned"],
     evidence_checked: ["resolved", "assigned"],
     resolved: ["resident_feedback"],
-    // closed, or reopened (the one backward move — see header comment).
-    resident_feedback: ["closed", "assigned"],
+    // ≥ 4 stars → closed. ≤ 3 stars → escalated to admin.
+    // Residents do NOT have direct reopen power.
+    resident_feedback: ["closed", "escalated"],
+    // Admin decides: reopen for rework or force-close.
+    escalated: ["assigned", "closed"],
     closed: [],
   };
 

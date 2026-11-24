@@ -1,6 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 
+import {
+  dispatchTransitionNotifications,
+  getCommunityAdmins,
+  getIncidentReporters,
+} from "../../../lib/notify/incident-notify";
 import { notify } from "../../../lib/notify/service";
 import { renderNotification } from "../../../lib/notify/templates";
 
@@ -119,6 +124,51 @@ describe("notifications", () => {
           type: "incident_assigned",
         }),
       );
+    });
+  });
+
+  describe("incident-notify dispatcher", () => {
+    it("finds incident reporters from linked issues", async () => {
+      const mockClient = {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({
+              data: [
+                { issue: { reporter_id: "reporter-1" } },
+                { issue: { reporter_id: "reporter-2" } },
+                { issue: { reporter_id: "reporter-1" } }, // Duplicate
+              ],
+              error: null,
+            }),
+          }),
+        }),
+      } as unknown as SupabaseClient;
+
+      const reporters = await getIncidentReporters(mockClient, "inc-1");
+      expect(reporters).toEqual(["reporter-1", "reporter-2"]);
+    });
+
+    it("finds community admins", async () => {
+      const mockClient = {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: [
+                    { resident_id: "admin-1" },
+                    { resident_id: "admin-2" },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        }),
+      } as unknown as SupabaseClient;
+
+      const admins = await getCommunityAdmins(mockClient, "comm-1");
+      expect(admins).toEqual(["admin-1", "admin-2"]);
     });
   });
 });

@@ -202,6 +202,7 @@ export function IncidentQueue() {
             <option value="evidence_checked">Evidence Checked</option>
             <option value="resolved">Resolved</option>
             <option value="resident_feedback">Resident Feedback</option>
+            <option value="escalated">Escalated</option>
             <option value="closed">Closed</option>
           </select>
         </div>

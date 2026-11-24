@@ -24,6 +24,12 @@ export function AdminNav() {
       hint: "Active tickets & triage",
     },
     {
+      href: "/residents",
+      icon: "👥",
+      label: "Residents & Flats",
+      hint: "Roster, flats & invites",
+    },
+    {
       href: "/map",
       icon: "🗺️",
       label: "Society Map",

@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/jobs/keep-alive",
+      "schedule": "0 6 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/serwist/(.*)",

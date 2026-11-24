@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { runDailyDigest } from "../../../lib/jobs/daily-digest";
 import { runSlaScanner } from "../../../lib/jobs/sla-scanner";
+import { runStorageCleanup } from "../../../lib/jobs/storage-cleanup";
 import * as notifyService from "../../../lib/notify/service";
 
 describe("scheduled jobs", () => {
@@ -167,6 +168,76 @@ describe("scheduled jobs", () => {
           resolvedTodayCount: 4,
         }),
       );
+    });
+  });
+
+  describe("runStorageCleanup", () => {
+    it("returns zero when no old closed incidents exist", async () => {
+      const from = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            lt: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        }),
+      });
+
+      const client = { from } as unknown as SupabaseClient;
+      const res = await runStorageCleanup(client, 90);
+      expect(res.scannedIncidents).toBe(0);
+      expect(res.cleanedPhotosCount).toBe(0);
+    });
+
+    it("cleans up photos for incidents closed older than retention days", async () => {
+      const remove = vi.fn().mockResolvedValue({ data: [], error: null });
+      const update = vi.fn().mockReturnValue({
+        in: vi.fn().mockResolvedValue({ error: null }),
+      });
+
+      const from = vi.fn().mockImplementation((table: string) => {
+        if (table === "incidents") {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                lt: vi.fn().mockResolvedValue({
+                  data: [
+                    {
+                      id: "inc-old-1",
+                      community_id: "c-1",
+                      closed_at: "2025-01-01T00:00:00Z",
+                      resolution_before_photo: "c-1/inc-1/before.jpg",
+                      resolution_after_photo: "c-1/inc-1/after.jpg",
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }),
+            update,
+          };
+        }
+        if (table === "incident_issues") {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({ data: [] }),
+            }),
+          };
+        }
+        return {};
+      });
+
+      const storage = {
+        from: vi.fn().mockReturnValue({ remove }),
+      };
+
+      const client = { from, storage } as unknown as SupabaseClient;
+      const res = await runStorageCleanup(client, 90);
+
+      expect(res.scannedIncidents).toBe(1);
+      expect(res.cleanedPhotosCount).toBe(2);
+      expect(remove).toHaveBeenCalledWith([
+        "c-1/inc-1/before.jpg",
+        "c-1/inc-1/after.jpg",
+      ]);
     });
   });
 });

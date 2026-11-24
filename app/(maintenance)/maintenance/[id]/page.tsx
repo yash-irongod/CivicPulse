@@ -38,6 +38,7 @@ interface LinkedIssue {
   id: string;
   rawText: string | null;
   photoPaths: string[];
+  photoUrls?: (string | null)[];
   submittedAt: string;
   reporterName: string | null;
 }
@@ -347,14 +348,32 @@ export default function MaintenanceJobDetailPage() {
               )}
               {issue.photoPaths.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
-                  {issue.photoPaths.map((path, i) => (
-                    <div
-                      key={i}
-                      className="w-20 h-20 bg-ink/5 border border-ink/10 flex-shrink-0 flex items-center justify-center text-[10px] text-ink/30"
-                    >
-                      📷 Photo {i + 1}
-                    </div>
-                  ))}
+                  {issue.photoPaths.map((path, i) => {
+                    const url = issue.photoUrls?.[i];
+                    return url ? (
+                      <a
+                        key={i}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`Issue photo ${i + 1}`}
+                          className="w-20 h-20 object-cover border border-ink/10"
+                        />
+                      </a>
+                    ) : (
+                      <div
+                        key={i}
+                        className="w-20 h-20 bg-ink/5 border border-ink/10 flex-shrink-0 flex items-center justify-center text-[10px] text-ink/30"
+                      >
+                        Photo unavailable
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               <div className="text-[10px] text-ink/40">

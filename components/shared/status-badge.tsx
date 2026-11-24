@@ -21,6 +21,7 @@ const STATUS_LABELS: Record<string, { en: string; hi: string }> = {
   evidence_checked: { en: "Evidence checked", hi: "प्रमाण सत्यापित" },
   resolved: { en: "Resolved", hi: "हल हो गई" },
   resident_feedback: { en: "Feedback needed", hi: "प्रतिक्रिया आवश्यक" },
+  escalated: { en: "Escalated", hi: "बढ़ाई गई" },
   closed: { en: "Closed", hi: "बंद" },
 };
 
@@ -34,6 +35,8 @@ export function StatusBadge({
   let colorClasses = "bg-ink/10 text-ink";
   if (status === "resolved" || status === "closed") {
     colorClasses = "bg-pine text-on-pine";
+  } else if (status === "escalated") {
+    colorClasses = "bg-brick text-on-brick";
   } else if (status === "in_progress" || status === "assigned") {
     colorClasses = "bg-marigold text-on-marigold";
   } else if (status === "reported") {

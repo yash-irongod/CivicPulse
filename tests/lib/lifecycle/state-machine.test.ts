@@ -40,14 +40,16 @@ const ALLOWED: ReadonlyArray<readonly [IncidentStatus, IncidentStatus]> = [
   ["evidence_checked", "assigned"],
   ["resolved", "resident_feedback"],
   ["resident_feedback", "closed"],
-  ["resident_feedback", "assigned"],
+  ["resident_feedback", "escalated"],
+  ["escalated", "assigned"],
+  ["escalated", "closed"],
 ];
 
 describe("isValidTransition: the full matrix", () => {
   const allowedKeys = new Set(ALLOWED.map(([from, to]) => `${from}>${to}`));
 
-  it("has the ten states of §6.5", () => {
-    expect(INCIDENT_STATUSES).toHaveLength(10);
+  it("has the eleven states of the lifecycle", () => {
+    expect(INCIDENT_STATUSES).toHaveLength(11);
   });
 
   for (const from of INCIDENT_STATUSES) {
@@ -65,8 +67,16 @@ describe("isValidTransition: the cases the plan calls out", () => {
     expect(isValidTransition("reported", "resolved")).toBe(false);
   });
 
-  it("allows the reopen: resident_feedback -> assigned (Phase 8.4)", () => {
-    expect(isValidTransition("resident_feedback", "assigned")).toBe(true);
+  it("routes resident feedback: >=4 stars -> closed, <=3 stars -> escalated", () => {
+    expect(isValidTransition("resident_feedback", "closed")).toBe(true);
+    expect(isValidTransition("resident_feedback", "escalated")).toBe(true);
+    // Residents do NOT have direct reopen power anymore
+    expect(isValidTransition("resident_feedback", "assigned")).toBe(false);
+  });
+
+  it("allows admin decision on escalated tickets: assigned (rework) or closed", () => {
+    expect(isValidTransition("escalated", "assigned")).toBe(true);
+    expect(isValidTransition("escalated", "closed")).toBe(true);
   });
 
   it("treats closed as terminal", () => {
@@ -87,11 +97,11 @@ describe("isValidTransition: the cases the plan calls out", () => {
     // Three backward paths:
     // 1. resolution_submitted → assigned (admin rejects before AI check)
     // 2. evidence_checked → assigned (admin rejects after AI check)
-    // 3. resident_feedback → assigned (resident disputes resolution)
+    // 3. escalated → assigned (admin reopens escalated ticket for rework)
     expect(backward).toEqual([
       ["resolution_submitted", "assigned"],
       ["evidence_checked", "assigned"],
-      ["resident_feedback", "assigned"],
+      ["escalated", "assigned"],
     ]);
   });
 });
@@ -189,8 +199,8 @@ describe("transitionIncident", () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
-  it("accepts the reopen and lists what a closed incident may become (nothing)", async () => {
-    const reopen = clients({ current: "resident_feedback" });
+  it("accepts the reopen from escalated and lists what a closed incident may become (nothing)", async () => {
+    const reopen = clients({ current: "escalated" });
     await transitionIncident(reopen.clients, {
       incidentId: INCIDENT_ID,
       actorResidentId: ACTOR_ID,

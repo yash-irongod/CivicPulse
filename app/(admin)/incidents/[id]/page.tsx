@@ -38,12 +38,17 @@ interface IncidentDetail {
   possibleDuplicateOf: string | null;
   resolutionBeforePhoto: string | null;
   resolutionAfterPhoto: string | null;
+  resolutionBeforePhotoUrl: string | null;
+  resolutionAfterPhotoUrl: string | null;
   resolutionNote: string | null;
   evidenceAiCheck: {
     consistent: boolean;
     confidence: number;
     reasoning: string;
   } | null;
+  feedbackRating: number | null;
+  feedbackComment: string | null;
+  feedbackAt: string | null;
 }
 
 interface LinkedIssue {
@@ -51,6 +56,7 @@ interface LinkedIssue {
   rawText: string | null;
   rawTranscript: string | null;
   photoPaths: string[];
+  photoUrls?: (string | null)[];
   submittedAt: string;
   reporterName: string | null;
 }
@@ -83,6 +89,7 @@ const STATUS_LABELS: Record<string, string> = {
   evidence_checked: "Evidence Checked",
   resolved: "Resolved",
   resident_feedback: "Awaiting Resident Feedback",
+  escalated: "Escalated — Admin Review",
   closed: "Closed",
 };
 
@@ -120,15 +127,19 @@ const ADMIN_TRANSITIONS: Record<
   ],
   resolved: [{ to: "resident_feedback", label: "Request Resident Feedback" }],
   resident_feedback: [
-    {
-      to: "closed",
-      label: "Close (Confirmed by Resident)",
-      confirm: "Close this incident?",
-    },
+    // Residents now rate with stars — ≥ 4 auto-closes, ≤ 3 auto-escalates.
+    // No manual admin transitions from this state.
+  ],
+  escalated: [
     {
       to: "assigned",
-      label: "Reopen (Resident Disputed)",
-      confirm: "Reopen and reassign this incident?",
+      label: "Reopen for Rework",
+      confirm: "Reopen this incident and send it back for rework?",
+    },
+    {
+      to: "closed",
+      label: "Close (Override)",
+      confirm: "Close this incident despite the low rating?",
     },
   ],
 };
@@ -555,12 +566,69 @@ export default function AdminIncidentDetailPage() {
               resolutionNotes: incident.resolutionNote,
               beforePhotoPath: incident.resolutionBeforePhoto,
               afterPhotoPath: incident.resolutionAfterPhoto,
+              beforePhotoUrl: incident.resolutionBeforePhotoUrl,
+              afterPhotoUrl: incident.resolutionAfterPhotoUrl,
               aiEvidenceCheck: incident.evidenceAiCheck,
               createdAt: incident.createdAt,
             } satisfies PendingVerification
           }
           onProcessed={fetchDetail}
         />
+      )}
+
+      {/* Escalation Review Card (shown when resident gave ≤ 3 stars) */}
+      {incident.status === "escalated" && (
+        <div className="border-2 border-marigold/40 bg-marigold/[0.04] p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-marigold/20 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-marigold" />
+              <span className="text-sm font-bold text-ink">
+                Escalated by Resident
+              </span>
+            </div>
+            <span className="text-xs font-semibold text-marigold bg-marigold/10 px-2 py-0.5 border border-marigold/20">
+              Needs Admin Decision
+            </span>
+          </div>
+
+          {/* Rating display */}
+          {incident.feedbackRating !== null && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl tracking-wider">
+                  {"★".repeat(incident.feedbackRating)}
+                  {"☆".repeat(5 - incident.feedbackRating)}
+                </span>
+                <span className="text-sm font-semibold text-ink">
+                  {incident.feedbackRating}/5
+                </span>
+              </div>
+              {incident.feedbackComment && (
+                <div className="text-xs text-ink/80 bg-paper p-3 border border-ink/10">
+                  <strong>Resident&apos;s comment:</strong> &ldquo;
+                  {incident.feedbackComment}&rdquo;
+                </div>
+              )}
+              {incident.feedbackAt && (
+                <div className="text-[10px] text-ink/40">
+                  Feedback submitted:{" "}
+                  {new Date(incident.feedbackAt).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          <p className="text-xs text-ink/60">
+            The resident rated this work poorly. You can reopen the ticket for
+            rework or close it if you believe the work was adequate.
+          </p>
+        </div>
       )}
 
       {/* Linked Issues */}
@@ -589,14 +657,32 @@ export default function AdminIncidentDetailPage() {
               )}
               {issue.photoPaths.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto">
-                  {issue.photoPaths.map((path, i) => (
-                    <div
-                      key={i}
-                      className="w-20 h-20 bg-ink/5 border border-ink/10 flex-shrink-0 flex items-center justify-center text-[10px] text-ink/30"
-                    >
-                      📷 Photo {i + 1}
-                    </div>
-                  ))}
+                  {issue.photoPaths.map((path, i) => {
+                    const url = issue.photoUrls?.[i];
+                    return url ? (
+                      <a
+                        key={i}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-shrink-0"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt={`Issue photo ${i + 1}`}
+                          className="w-20 h-20 object-cover border border-ink/10"
+                        />
+                      </a>
+                    ) : (
+                      <div
+                        key={i}
+                        className="w-20 h-20 bg-ink/5 border border-ink/10 flex-shrink-0 flex items-center justify-center text-[10px] text-ink/30"
+                      >
+                        Photo unavailable
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               <div className="text-[10px] text-ink/40 flex gap-2 flex-wrap">

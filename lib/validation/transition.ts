@@ -13,6 +13,7 @@ export const INCIDENT_STATUSES = [
   "evidence_checked",
   "resolved",
   "resident_feedback",
+  "escalated",
   "closed",
 ] as const;
 export type IncidentStatus = (typeof INCIDENT_STATUSES)[number];

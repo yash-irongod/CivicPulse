@@ -246,9 +246,7 @@ export default function MyReportsPage() {
                           className="w-full py-2.5 px-3 bg-pine text-on-pine text-xs font-semibold hover:bg-pine/90 shadow-sm transition-all flex items-center justify-center gap-2"
                         >
                           <span>✓</span>
-                          <span>
-                            Staff Marked Work Done • Confirm or Dispute
-                          </span>
+                          <span>Work Marked Done — Rate the Work</span>
                         </button>
                       )}
                     </div>

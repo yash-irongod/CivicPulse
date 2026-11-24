@@ -12,6 +12,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/auth/guards";
 import { describeError, logEvent } from "@/lib/auth/log";
+import { notifyAdmins } from "@/lib/notify/incident-notify";
 import { checkResolutionEvidence } from "@/lib/ai/evidence-check";
 import { transitionIncident } from "@/lib/lifecycle/state-machine";
 import {
@@ -155,6 +156,15 @@ export async function POST(
       },
     );
   }
+
+  // Notify committee admins that resolution evidence is ready for review
+  notifyAdmins(admin, incident.community_id, "status_changed", {
+    incidentId,
+    fromStatus: "resolution_submitted",
+    toStatus: "evidence_checked",
+  }).catch((err) => {
+    logEvent("warn", "evidence_check.notify_failed", describeError(err));
+  });
 
   return json(
     {

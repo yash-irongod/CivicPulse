@@ -15,6 +15,8 @@ export interface PendingVerification {
   resolutionNotes: string | null;
   beforePhotoPath: string | null;
   afterPhotoPath: string | null;
+  beforePhotoUrl?: string | null;
+  afterPhotoUrl?: string | null;
   aiEvidenceCheck: {
     consistent?: boolean;
     confidence?: number;
@@ -163,15 +165,30 @@ export function VerifyResolution({ item, onProcessed }: VerifyResolutionProps) {
             </span>
           </div>
 
-          <div className="aspect-[4/3] bg-ink/5 border border-ink/10 flex flex-col items-center justify-center p-3 text-center">
-            <span className="text-2xl mb-1">📷</span>
-            <div className="font-mono text-xs text-ink/70 max-w-[90%] break-all">
-              {item.beforePhotoPath || "Original Issue Photo"}
+          {item.beforePhotoUrl ? (
+            <a
+              href={item.beforePhotoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.beforePhotoUrl}
+                alt="Before — original issue photo"
+                className="aspect-[4/3] w-full object-cover border border-ink/10"
+              />
+            </a>
+          ) : (
+            <div className="aspect-[4/3] bg-ink/5 border border-ink/10 flex flex-col items-center justify-center p-3 text-center">
+              <span className="text-sm text-ink/40">
+                No before photo available
+              </span>
+              <span className="text-[10px] text-ink/30 mt-1">
+                Reported by Resident
+              </span>
             </div>
-            <span className="text-[10px] text-ink/50 mt-1">
-              Reported by Resident
-            </span>
-          </div>
+          )}
         </div>
 
         {/* AFTER */}
@@ -183,15 +200,30 @@ export function VerifyResolution({ item, onProcessed }: VerifyResolutionProps) {
             </span>
           </div>
 
-          <div className="aspect-[4/3] bg-pine/[0.04] border border-pine/20 flex flex-col items-center justify-center p-3 text-center">
-            <span className="text-2xl mb-1">✅</span>
-            <div className="font-mono text-xs text-pine font-medium max-w-[90%] break-all">
-              {item.afterPhotoPath || "Resolution Evidence Uploaded"}
+          {item.afterPhotoUrl ? (
+            <a
+              href={item.afterPhotoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={item.afterPhotoUrl}
+                alt="After — staff proof of work"
+                className="aspect-[4/3] w-full object-cover border border-pine/20"
+              />
+            </a>
+          ) : (
+            <div className="aspect-[4/3] bg-pine/[0.04] border border-pine/20 flex flex-col items-center justify-center p-3 text-center">
+              <span className="text-sm text-ink/40">
+                No after photo available
+              </span>
+              <span className="text-[10px] text-pine/50 mt-1">
+                Uploaded by Staff
+              </span>
             </div>
-            <span className="text-[10px] text-pine/70 mt-1">
-              Uploaded by Staff
-            </span>
-          </div>
+          )}
         </div>
       </div>
 

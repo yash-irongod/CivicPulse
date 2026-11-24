@@ -35,7 +35,11 @@ export async function runSlaScanner(
       .select("id, community_id, severity, sla_target_at")
       .not("sla_target_at", "is", null)
       .lte("sla_target_at", horizon)
-      .not("status", "in", '("resolved","resident_feedback","closed")');
+      .not(
+        "status",
+        "in",
+        '("resolved","resident_feedback","escalated","closed")',
+      );
 
     if (fetchError) throw fetchError;
     if (!candidates || candidates.length === 0) {

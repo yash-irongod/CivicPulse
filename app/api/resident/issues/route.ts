@@ -10,7 +10,11 @@ import {
 } from "@/lib/auth/guards";
 import { describeError, logEvent } from "@/lib/auth/log";
 import { hoursRemaining } from "@/lib/lifecycle/sla";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { EVIDENCE_BUCKET, getSignedUrls } from "@/lib/storage/signed-url";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+} from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -126,7 +130,23 @@ export async function GET(): Promise<Response> {
       };
     });
 
-    return json({ issues: formattedIssues }, 200);
+    // Generate signed download URLs for all issue photos in one batch
+    const admin = createSupabaseServiceRoleClient();
+    const allPaths: string[] = [];
+    for (const issue of formattedIssues) {
+      for (const p of issue.photoPaths) {
+        if (p && !allPaths.includes(p)) allPaths.push(p);
+      }
+    }
+
+    const photoUrlMap = await getSignedUrls(admin, EVIDENCE_BUCKET, allPaths);
+
+    const issuesWithUrls = formattedIssues.map((issue) => ({
+      ...issue,
+      photoUrls: issue.photoPaths.map((p: string) => photoUrlMap[p] ?? null),
+    }));
+
+    return json({ issues: issuesWithUrls }, 200);
   } catch (error) {
     logEvent("error", "resident_issues.fetch_failed", describeError(error));
     return json({ error: "server_error" }, 500);
