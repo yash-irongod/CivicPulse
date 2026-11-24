@@ -37,9 +37,9 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "residents",
     badge: "Setup step 1 · Start here",
-    title: "Add Flats & Invite Residents",
+    title: "Add Flats, Staff & Invite Residents",
     description:
-      "Open Residents & Flats first. Add your society units, then generate one-time WhatsApp links so residents join with zero passwords.",
+      "Invite Residents, Maintenance Workers (with their Team), and Co-Admins with zero passwords — and share the welcome poster straight in your WhatsApp/social group chats.",
     targetSelector: '[data-tour="nav-residents"]',
     actionLabel: "Open Residents & Flats",
     actionHref: "/residents",
@@ -56,10 +56,10 @@ const TOUR_STEPS: TourStep[] = [
   },
   {
     id: "teams",
-    badge: "Daily step 3",
-    title: "Verify Staff Repairs Before Closing",
+    badge: "Setup step 3 & Approvals",
+    title: "Teams, Categories, SLAs & Proof Approvals",
     description:
-      "When staff upload proof of completion, review Before vs. After photos here and approve. Only then can the resident rate and close it.",
+      "Configure Maintenance Teams, Issue Categories, and SLA hours in Setup — and inspect Before vs. After photos here before approving repairs.",
     targetSelector: '[data-tour="nav-teams"]',
     actionLabel: "Open Teams",
     actionHref: "/teams",

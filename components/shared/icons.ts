@@ -78,6 +78,11 @@ export {
   Sparkles,
   CircleCheckBig,
   Compass,
+  Crown,
+  Download,
+  KeyRound,
+  Pencil,
+  SlidersHorizontal,
 } from "lucide-react";
 
 export type { LucideIcon } from "lucide-react";

@@ -17,6 +17,7 @@ const DEFAULT_ASSETS: ResolvedAssets = {
   stepReport: null,
   stepAssign: null,
   stepVerify: null,
+  residentWelcomePoster: null,
 };
 
 const CommunityShellContext = createContext<CommunityShellContextValue>({

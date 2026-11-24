@@ -9,7 +9,8 @@ export type NivasAssetName =
   | "empty-notifications.webp"
   | "step-report.webp"
   | "step-assign.webp"
-  | "step-verify.webp";
+  | "step-verify.webp"
+  | "resident-welcome-poster.jpg";
 
 export interface ResolvedAssets {
   logo: string | null;
@@ -20,6 +21,7 @@ export interface ResolvedAssets {
   stepReport: string | null;
   stepAssign: string | null;
   stepVerify: string | null;
+  residentWelcomePoster: string | null;
 }
 
 /**
@@ -53,5 +55,6 @@ export function getResolvedAssets(): ResolvedAssets {
     stepReport: resolveAssetUrl("step-report.webp"),
     stepAssign: resolveAssetUrl("step-assign.webp"),
     stepVerify: resolveAssetUrl("step-verify.webp"),
+    residentWelcomePoster: resolveAssetUrl("resident-welcome-poster.jpg"),
   };
 }

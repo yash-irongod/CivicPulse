@@ -113,5 +113,39 @@ describe("SLA policy engine", () => {
       const diffHours = (result!.getTime() - before) / (3600 * 1000);
       expect(diffHours).toBeCloseTo(expectedHours, 0);
     });
+
+    it("computes SLA target relative to custom baseDate when provided", async () => {
+      const update = vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      });
+      const maybeSingle = vi.fn().mockResolvedValue({
+        data: { target_hours: 4 },
+        error: null,
+      });
+      const select = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({ maybeSingle }),
+          }),
+        }),
+      });
+      const from = vi.fn().mockImplementation((table: string) => {
+        if (table === "sla_policies") return { select };
+        if (table === "incidents") return { update };
+        return {};
+      });
+
+      const createdAt = new Date("2026-01-01T10:00:00.000Z");
+      const result = await assignIncidentSla(
+        { from } as unknown as SupabaseClient,
+        "inc-2",
+        "comm-1",
+        "cat-1",
+        "critical",
+        createdAt,
+      );
+
+      expect(result?.toISOString()).toBe("2026-01-01T14:00:00.000Z");
+    });
   });
 });

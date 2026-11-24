@@ -57,8 +57,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   // Rate limiting check
+  let admin;
   try {
-    const admin = createSupabaseServiceRoleClient();
+    admin = createSupabaseServiceRoleClient();
     const rateLimit = await checkRateLimit(
       admin,
       ISSUE_RATE_LIMIT,
@@ -149,7 +150,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const issueId = randomUUID();
   const communityId = session.activeCommunityId;
 
-  // Upload media files to Storage
+  // Upload media files to Storage (private buckets via trusted service-role after membership guard)
   const photoPaths: string[] = [];
   let voiceNotePath: string | null = null;
 
@@ -157,7 +158,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     for (const photo of photos) {
       const ext = photo.name.split(".").pop() || "jpg";
       const storageKey = `${communityId}/${issueId}/${randomUUID()}.${ext}`;
-      const { error: uploadError } = await db.storage
+      const { error: uploadError } = await admin.storage
         .from("evidence-photos")
         .upload(storageKey, photo, {
           contentType: photo.type,
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (voiceNote) {
       const ext = voiceNote.name.split(".").pop() || "webm";
       const storageKey = `${communityId}/${issueId}/${randomUUID()}.${ext}`;
-      const { error: uploadError } = await db.storage
+      const { error: uploadError } = await admin.storage
         .from("voice-notes")
         .upload(storageKey, voiceNote, {
           contentType: voiceNote.type,

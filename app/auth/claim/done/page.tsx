@@ -15,6 +15,7 @@ import { ClaimNotice } from "@/components/resident/claim-notice";
 import { LanguageSwitch } from "@/components/resident/language-switch";
 import { CLAIM_PATH, POST_CLAIM_PATH } from "@/lib/auth/claim";
 import { describeError, logEvent } from "@/lib/auth/log";
+import { roleSchema } from "@/lib/auth/roles";
 import { resolveLang, t } from "@/lib/i18n/claim-strings";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { langSchema, parseClaimPageQuery } from "@/lib/validation/claim";
@@ -34,6 +35,7 @@ const residentRowSchema = z.object({
 });
 
 const membershipRowSchema = z.object({
+  role: roleSchema,
   spaces: z.object({ name: z.string() }).nullable(),
   communities: z.object({ name: z.string() }),
 });
@@ -66,18 +68,25 @@ export default async function ClaimDonePage({
     if (residentResult.data === null) redirect(CLAIM_PATH);
     resident = residentRowSchema.parse(residentResult.data);
 
-    const membershipResult = await supabase
+    const membershipsResult = await supabase
       .from("memberships")
-      .select("spaces(name), communities(name)")
+      .select("role, spaces(name), communities(name)")
       .eq("resident_id", resident.id)
-      .eq("role", "resident")
       .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (membershipResult.error) throw membershipResult.error;
-    if (membershipResult.data === null) redirect(CLAIM_PATH);
-    membership = membershipRowSchema.parse(membershipResult.data);
+      .order("created_at", { ascending: false });
+    if (membershipsResult.error) throw membershipsResult.error;
+    const activeMemberships = z
+      .array(membershipRowSchema)
+      .parse(membershipsResult.data ?? []);
+    if (activeMemberships.length === 0) redirect(CLAIM_PATH);
+
+    const roleOrder = {
+      committee_admin: 0,
+      maintenance_staff: 1,
+      resident: 2,
+    } as const;
+    activeMemberships.sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
+    membership = activeMemberships[0]!;
   } catch (error) {
     // redirect() signals through a thrown error that must not be swallowed.
     unstable_rethrow(error);
@@ -88,6 +97,12 @@ export default async function ClaimDonePage({
   const lang = resolveLang(query.lang, resident.preferred_language, undefined);
   const community = membership.communities.name;
   const space = membership.spaces?.name ?? null;
+  const continueHref =
+    membership.role === "committee_admin"
+      ? "/dashboard"
+      : membership.role === "maintenance_staff"
+        ? "/maintenance"
+        : "/my-reports";
 
   return (
     <div className="min-h-dvh bg-paper font-sans text-ink">
@@ -117,7 +132,7 @@ export default async function ClaimDonePage({
         <ClaimInstallStrip lang={lang} showPushOption />
 
         <Link
-          href="/"
+          href={continueHref}
           className={`inline-flex h-12 items-center justify-center bg-marigold px-6 text-lg font-semibold text-on-marigold ${FOCUS}`}
         >
           {t(lang, "done_action")}

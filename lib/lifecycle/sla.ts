@@ -60,6 +60,7 @@ export async function assignIncidentSla(
   communityId: string,
   categoryId: string | null,
   severity: Severity | null,
+  baseDate: Date = new Date(),
 ): Promise<Date | null> {
   if (!severity) {
     return null;
@@ -85,7 +86,7 @@ export async function assignIncidentSla(
     }
   }
 
-  const slaTargetAt = calculateTargetDate(targetHours);
+  const slaTargetAt = calculateTargetDate(targetHours, baseDate);
 
   try {
     const { error: updateError } = await client

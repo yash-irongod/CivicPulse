@@ -1,16 +1,21 @@
-// GET & POST /api/admin/roster — Committee Admin Resident Roster & Invite Management.
-// Lets committee admins view all invited/claimed residents, issue new invites with one-time
-// claim tokens, and manage flats/spaces.
+// GET & POST /api/admin/roster — Committee Admin Roster, Roles, Staff Teams & Invites.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
+import {
+  buildRosterDirectory,
+  type LiveMembershipRow,
+  type LiveTeamMemberRow,
+  type RawRosterEntry,
+} from "@/lib/admin/roster-service";
 import {
   UnauthorizedError,
   requireRole,
   unauthorizedResponse,
 } from "@/lib/auth/guards";
 import { describeError, logEvent } from "@/lib/auth/log";
+import { roleSchema } from "@/lib/auth/roles";
 import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
@@ -18,11 +23,13 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const addResidentSchema = z.object({
+const addMemberSchema = z.object({
   displayName: z.string().trim().min(1, "Name is required").max(100),
   phone: z.string().trim().max(20).optional(),
   spaceName: z.string().trim().max(100).optional(),
   preferredLanguage: z.enum(["en", "hi"]).default("en"),
+  role: roleSchema.default("resident"),
+  teamId: z.guid().nullable().optional(),
 });
 
 function json(body: Record<string, unknown>, status: number): NextResponse {
@@ -47,67 +54,104 @@ export async function GET(): Promise<Response> {
   const admin = createSupabaseServiceRoleClient();
 
   try {
-    // 1. Fetch community details
-    const { data: community } = await admin
-      .from("communities")
-      .select("id, name, default_language")
-      .eq("id", communityId)
-      .maybeSingle();
-
-    // 2. Fetch all roster entries with space info
-    const { data: entries, error: entriesErr } = await admin
-      .from("roster_entries")
-      .select(
-        `
-        id,
-        display_name,
-        phone,
-        preferred_language,
-        status,
-        claim_token_expires_at,
-        claimed_at,
-        created_at,
-        space:spaces(id, name)
-      `,
-      )
-      .eq("community_id", communityId)
-      .order("created_at", { ascending: false });
+    const [
+      { data: community },
+      { data: entries, error: entriesErr },
+      { data: spaces, error: spacesErr },
+      { data: teams, error: teamsErr },
+      { data: activeMemberships, error: memErr },
+    ] = await Promise.all([
+      admin
+        .from("communities")
+        .select("id, name, default_language")
+        .eq("id", communityId)
+        .maybeSingle(),
+      admin
+        .from("roster_entries")
+        .select(
+          `
+          id,
+          community_id,
+          resident_id,
+          display_name,
+          phone,
+          preferred_language,
+          status,
+          intended_role,
+          intended_team_id,
+          is_chief_admin,
+          claim_token_expires_at,
+          claimed_at,
+          created_at,
+          space:spaces(id, name),
+          team:teams(id, name)
+        `,
+        )
+        .eq("community_id", communityId)
+        .order("created_at", { ascending: false }),
+      admin
+        .from("spaces")
+        .select("id, name, created_at")
+        .eq("community_id", communityId)
+        .order("name", { ascending: true }),
+      admin
+        .from("teams")
+        .select("id, name")
+        .eq("community_id", communityId)
+        .order("name", { ascending: true }),
+      admin
+        .from("memberships")
+        .select("resident_id, role, status, is_chief_admin")
+        .eq("community_id", communityId)
+        .eq("status", "active"),
+    ]);
 
     if (entriesErr) throw entriesErr;
-
-    // 3. Fetch all spaces (flats/units) in community
-    const { data: spaces, error: spacesErr } = await admin
-      .from("spaces")
-      .select("id, name, created_at")
-      .eq("community_id", communityId)
-      .order("name", { ascending: true });
-
     if (spacesErr) throw spacesErr;
+    if (teamsErr) throw teamsErr;
+    if (memErr) throw memErr;
 
-    const formattedEntries = (entries || []).map((e) => {
-      const spaceData = e.space as unknown;
-      const sp = Array.isArray(spaceData)
-        ? (spaceData[0] as { id: string; name: string } | undefined)
-        : (spaceData as { id: string; name: string } | null);
-      return {
-        id: e.id,
-        displayName: e.display_name,
-        phone: e.phone,
-        preferredLanguage: e.preferred_language,
-        status: e.status,
-        expiresAt: e.claim_token_expires_at,
-        claimedAt: e.claimed_at,
-        createdAt: e.created_at,
-        spaceId: sp?.id ?? null,
-        spaceName: sp?.name ?? null,
-      };
-    });
+    const teamList = (teams || []) as Array<{ id: string; name: string }>;
+    const teamIds = teamList.map((t) => t.id);
+    const teamNameMap = new Map(teamList.map((t) => [t.id, t.name]));
+
+    let liveTeamRows: LiveTeamMemberRow[] = [];
+    if (teamIds.length > 0) {
+      const { data: tmData, error: tmErr } = await admin
+        .from("team_members")
+        .select("resident_id, team_id")
+        .in("team_id", teamIds);
+
+      if (tmErr) throw tmErr;
+      liveTeamRows = (tmData || []).map((tm) => ({
+        resident_id: tm.resident_id as string,
+        team_id: tm.team_id as string,
+        teamName: teamNameMap.get(tm.team_id as string),
+      }));
+    }
+
+    const activeList = (activeMemberships || []) as LiveMembershipRow[];
+    const callerIsChiefAdmin = activeList.some(
+      (m) =>
+        m.resident_id === session.resident.id &&
+        m.role === "committee_admin" &&
+        Boolean(m.is_chief_admin),
+    );
+
+    const formattedEntries = buildRosterDirectory(
+      (entries || []) as unknown as RawRosterEntry[],
+      activeList,
+      liveTeamRows,
+    );
 
     return json(
       {
         communityName: community?.name ?? "Society",
+        callerResidentId: session.resident.id,
+        callerIsChiefAdmin,
         entries: formattedEntries,
         spaces: (spaces || []).map((s) => ({ id: s.id, name: s.name })),
+        teams: teamList,
       },
       200,
     );
@@ -132,7 +176,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   let body;
   try {
     const raw = await request.json();
-    body = addResidentSchema.parse(raw);
+    body = addMemberSchema.parse(raw);
   } catch (e) {
     if (e instanceof z.ZodError) {
       return json(
@@ -147,6 +191,22 @@ export async function POST(request: NextRequest): Promise<Response> {
   const admin = createSupabaseServiceRoleClient();
 
   try {
+    let resolvedTeamId: string | null = null;
+    if (body.role === "maintenance_staff" && body.teamId) {
+      const { data: teamRow, error: teamErr } = await admin
+        .from("teams")
+        .select("id")
+        .eq("id", body.teamId)
+        .eq("community_id", communityId)
+        .maybeSingle();
+
+      if (teamErr) throw teamErr;
+      if (!teamRow) {
+        return json({ error: "invalid_team" }, 400);
+      }
+      resolvedTeamId = teamRow.id;
+    }
+
     let resolvedSpaceName = body.spaceName?.trim() || null;
 
     // If spaceName provided, check if space exists or create it
@@ -159,7 +219,6 @@ export async function POST(request: NextRequest): Promise<Response> {
         .maybeSingle();
 
       if (!existingSpace) {
-        // Auto-create flat/space
         const { error: createSpaceErr } = await admin.from("spaces").insert({
           community_id: communityId,
           name: resolvedSpaceName,
@@ -177,13 +236,15 @@ export async function POST(request: NextRequest): Promise<Response> {
       }
     }
 
-    // Provision via the stored procedure
     const entryPayload = [
       {
         display_name: body.displayName,
         phone: body.phone || null,
         preferred_language: body.preferredLanguage,
         space_name: resolvedSpaceName,
+        role: body.role,
+        team_id: resolvedTeamId,
+        is_chief_admin: false,
       },
     ];
 
@@ -192,7 +253,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       {
         p_community_id: communityId,
         p_entries: entryPayload,
-        p_valid_days: 30, // 30-day validity for convenience
+        p_valid_days: 30,
       },
     );
 
@@ -211,6 +272,8 @@ export async function POST(request: NextRequest): Promise<Response> {
         entry: {
           id: row.roster_entry_id,
           displayName: row.entry_display_name,
+          role: body.role,
+          teamId: resolvedTeamId,
           claimToken: row.claim_token,
           claimPath: row.claim_path,
           claimUrl: fullClaimUrl,

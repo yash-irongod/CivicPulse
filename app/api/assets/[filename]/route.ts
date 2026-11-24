@@ -21,6 +21,7 @@ const ALLOWED_FILENAMES = new Set([
   "step-report.webp",
   "step-assign.webp",
   "step-verify.webp",
+  "resident-welcome-poster.jpg",
 ]);
 
 type RouteContext = { params: Promise<{ filename: string }> };

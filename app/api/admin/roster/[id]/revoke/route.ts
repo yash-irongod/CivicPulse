@@ -1,8 +1,9 @@
-// POST /api/admin/roster/[id]/revoke — Revoke a resident invite.
+// POST /api/admin/roster/[id]/revoke — Revoke invite AND deactivate live society access.
 
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
+import { revokeRosterMember } from "@/lib/admin/roster-service";
 import {
   UnauthorizedError,
   requireRole,
@@ -47,17 +48,18 @@ export async function POST(
   const admin = createSupabaseServiceRoleClient();
 
   try {
-    const { error: updateErr } = await admin
-      .from("roster_entries")
-      .update({
-        status: "revoked",
-        claim_token_hash: null,
-        claim_token_expires_at: null,
-      })
-      .eq("id", rosterEntryId)
-      .eq("community_id", session.activeCommunityId);
+    const result = await revokeRosterMember(admin, {
+      rosterEntryId,
+      communityId: session.activeCommunityId,
+      actorResidentId: session.resident.id,
+    });
 
-    if (updateErr) throw updateErr;
+    if (result.kind === "not_found") {
+      return json({ error: "not_found" }, 404);
+    }
+    if (result.kind === "forbidden") {
+      return json({ error: result.code }, 403);
+    }
 
     logEvent("info", "roster_revoke.success", { rosterEntryId });
     return json({ success: true }, 200);

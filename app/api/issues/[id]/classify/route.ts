@@ -11,7 +11,10 @@ import {
 } from "@/lib/auth/guards";
 import { describeError, logEvent } from "@/lib/auth/log";
 import { classifyIssue } from "@/lib/ai/classify";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  createSupabaseServiceRoleClient,
+} from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -79,22 +82,34 @@ export async function POST(
 
   if (issue.photo_paths && issue.photo_paths.length > 0) {
     const firstPath = issue.photo_paths[0];
-    try {
-      const { data: blob } = await db.storage
-        .from("evidence-photos")
-        .download(firstPath);
+    if (
+      typeof firstPath === "string" &&
+      firstPath.startsWith(`${session.activeCommunityId}/`)
+    ) {
+      try {
+        const admin = createSupabaseServiceRoleClient();
+        const { data: blob, error: downloadError } = await admin.storage
+          .from("evidence-photos")
+          .download(firstPath);
 
-      if (blob) {
-        const buffer = await blob.arrayBuffer();
-        photoBase64 = Buffer.from(buffer).toString("base64");
-        photoMimeType = blob.type || "image/jpeg";
+        if (downloadError) {
+          logEvent(
+            "warn",
+            "issue_classify.photo_download_failed",
+            describeError(downloadError),
+          );
+        } else if (blob) {
+          const buffer = await blob.arrayBuffer();
+          photoBase64 = Buffer.from(buffer).toString("base64");
+          photoMimeType = blob.type || "image/jpeg";
+        }
+      } catch (err) {
+        logEvent(
+          "warn",
+          "issue_classify.photo_download_failed",
+          describeError(err),
+        );
       }
-    } catch (err) {
-      logEvent(
-        "warn",
-        "issue_classify.photo_download_failed",
-        describeError(err),
-      );
     }
   }
 

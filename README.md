@@ -36,7 +36,7 @@ Community maintenance & society operations PWA built for Indian housing societie
 ```bash
 npx tsc --noEmit   # Strict TypeScript check
 npm run lint       # ESLint
-npm test           # Vitest suite (531 tests)
+npm test           # Vitest suite (541 tests)
 npm run build      # Asset sync + Next.js production build + Serwist SW
 ```
 
@@ -48,9 +48,10 @@ npm run build      # Asset sync + Next.js production build + Serwist SW
 - **Resident PWA:** `/report`, `/my-reports`, `/notifications`
 - **Maintenance Staff:** `/maintenance`, `/maintenance/[id]`
 - **Committee Admin:** `/dashboard`, `/incidents`, `/incidents/[id]`, `/residents`, `/map`, `/teams`, `/analytics`
+- **Founder Console (Private):** `/super-admin` (society provisioning, Chief Admin invites, lost-device recovery)
 
 ---
 
 ## Society Setup & Admin Guide
 
-See [Admin Cheat Sheet & Society Setup Guide](docs/ADMIN_CHEAT_SHEET.md) for society SQL seeding, resident invite flow, live smoke testing, and the RWA committee cheat sheet.
+See [Admin Cheat Sheet & Society Setup Guide](docs/ADMIN_CHEAT_SHEET.md) for zero-SQL society setup, `/super-admin`, member & worker onboarding, live smoke testing, and the RWA committee cheat sheet.

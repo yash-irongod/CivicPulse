@@ -39,6 +39,7 @@ export interface MembershipRecord {
   spaceId: string | null;
   role: Role;
   status: "pending" | "active" | "suspended" | "revoked";
+  isChiefAdmin?: boolean;
 }
 
 export interface UserSession {

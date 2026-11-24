@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { MOTION, prefersReducedMotion } from "../../lib/motion/transitions";
 import { computeHealthScore } from "../../lib/analytics/health-score";
 import { hoursRemaining, isOverdue } from "../../lib/lifecycle/sla";
+import { getResolvedAssets } from "../../lib/assets/manifest";
 
 describe("Admin Components & Motion Tokens (Phase 10 & 11)", () => {
   describe("Motion Tokens (§7.5, Task 10.1)", () => {
@@ -52,6 +53,15 @@ describe("Admin Components & Motion Tokens (Phase 10 & 11)", () => {
       expect(result.overallScore).toBeGreaterThanOrEqual(90);
       expect(result.breakdown.overdueSafetyScore).toBe(20);
       expect(result.breakdown.backlogVelocityScore).toBe(15);
+    });
+  });
+
+  describe("Asset Manifest (Phase 9 Onboarding Poster)", () => {
+    it("resolves the resident welcome poster from public/assets", () => {
+      const assets = getResolvedAssets();
+      expect(assets.residentWelcomePoster).toBe(
+        "/assets/resident-welcome-poster.jpg",
+      );
     });
   });
 });

@@ -123,30 +123,23 @@ export async function POST(
 
   const incidentId = link.incident_id;
 
-  // 5. Update incident category
+  // 5. Update incident category & ensure SLA target is assigned using effective severity
   const { data: incident } = await admin
     .from("incidents")
     .select("id, status, severity, category_id")
     .eq("id", incidentId)
     .single();
 
+  const effectiveSeverity =
+    (incident?.severity as "critical" | "high" | "medium" | "low" | null) ??
+    "medium";
+
   await admin
     .from("incidents")
     .update({ category_id: category.id })
     .eq("id", incidentId);
 
-  // 6. Assign SLA
-  if (incident?.severity) {
-    await assignIncidentSla(
-      admin,
-      incidentId,
-      session.activeCommunityId,
-      category.id,
-      incident.severity,
-    );
-  }
-
-  // 7. If still in 'reported', advance to 'validated' (validation fires upon category confirmation per §6.5)
+  // 6. If still in 'reported', advance to 'validated' (validation fires upon category confirmation per §6.5)
   if (incident && incident.status === "reported") {
     await admin.rpc("transition_incident", {
       p_incident_id: incidentId,
@@ -154,10 +147,19 @@ export async function POST(
       p_to_status: "validated",
       p_category_id: category.id,
       p_assigned_team_id: null,
-      p_severity: incident.severity ?? "medium",
+      p_severity: effectiveSeverity,
       p_note: "Category confirmed by resident.",
     });
   }
+
+  // 7. Always compute/refresh SLA target using effective severity (fixes null-severity bypass)
+  await assignIncidentSla(
+    admin,
+    incidentId,
+    session.activeCommunityId,
+    category.id,
+    effectiveSeverity,
+  );
 
   return json(
     {

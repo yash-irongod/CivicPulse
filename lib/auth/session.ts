@@ -31,7 +31,9 @@ export async function getSession(
 
     const { data: membershipRows, error: membershipError } = await client
       .from("memberships")
-      .select("id, resident_id, community_id, space_id, role, status")
+      .select(
+        "id, resident_id, community_id, space_id, role, status, is_chief_admin",
+      )
       .eq("resident_id", residentData.id)
       .eq("status", "active");
 
@@ -46,6 +48,9 @@ export async function getSession(
       spaceId: row.space_id,
       role: row.role,
       status: row.status,
+      isChiefAdmin: Boolean(
+        (row as { is_chief_admin?: boolean }).is_chief_admin,
+      ),
     }));
 
     const resident: ResidentProfile = {

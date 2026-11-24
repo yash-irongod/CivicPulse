@@ -29,12 +29,16 @@ import {
 } from "@/lib/auth/guards";
 import { describeError, logEvent } from "@/lib/auth/log";
 import { dispatchTransitionNotifications } from "@/lib/notify/incident-notify";
+import { assignIncidentSla } from "@/lib/lifecycle/sla";
 import { transitionIncident } from "@/lib/lifecycle/state-machine";
 import {
   createSupabaseServerClient,
   createSupabaseServiceRoleClient,
 } from "@/lib/supabase/server";
-import { transitionRequestSchema } from "@/lib/validation/transition";
+import {
+  transitionRequestSchema,
+  type Severity,
+} from "@/lib/validation/transition";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +112,37 @@ export async function POST(
 
   switch (result.kind) {
     case "transitioned": {
+      const shouldRefreshSla =
+        !["resolved", "resident_feedback", "closed"].includes(
+          result.toStatus,
+        ) &&
+        (parsed.data.severity !== undefined ||
+          parsed.data.categoryId !== undefined ||
+          result.fromStatus === "reported");
+
+      if (shouldRefreshSla) {
+        const { data: refreshed } = await admin
+          .from("incidents")
+          .select("community_id, category_id, severity, created_at")
+          .eq("id", result.incidentId)
+          .maybeSingle();
+
+        if (refreshed?.severity) {
+          const baseDate =
+            result.fromStatus === "reported"
+              ? new Date()
+              : new Date(refreshed.created_at);
+          await assignIncidentSla(
+            admin,
+            result.incidentId,
+            refreshed.community_id,
+            refreshed.category_id,
+            refreshed.severity as Severity,
+            Number.isNaN(baseDate.getTime()) ? new Date() : baseDate,
+          );
+        }
+      }
+
       // Fire-and-forget notification dispatch
       if (result.fromStatus !== result.toStatus) {
         (async () => {

@@ -64,6 +64,7 @@ export async function POST(
       {
         p_roster_entry_id: rosterEntryId,
         p_valid_days: 30,
+        p_allow_device_transfer: true,
       },
     );
 
