@@ -2,7 +2,6 @@
 
 import React from "react";
 import { AdminNav } from "@/components/admin/nav";
-import { AdminOnboardingTour } from "@/components/admin/onboarding-tour";
 import { PwaInstallPrompt } from "@/components/pwa/install-prompt";
 import { CommunityShellProvider } from "@/components/shared/community-context";
 import {
@@ -42,7 +41,6 @@ export default async function AdminLayout({
             {children}
           </div>
         </main>
-        <AdminOnboardingTour communityName={communityName} />
         <PwaInstallPrompt allowPushPrompt logoUrl={assets.logo} />
       </div>
     </CommunityShellProvider>

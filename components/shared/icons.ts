@@ -81,6 +81,7 @@ export {
   Crown,
   Download,
   KeyRound,
+  Mail,
   Pencil,
   SlidersHorizontal,
 } from "lucide-react";

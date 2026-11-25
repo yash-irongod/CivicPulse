@@ -3,6 +3,7 @@
 
 import React from "react";
 import Link from "next/link";
+import { AccountEmailButton } from "@/components/shared/account-email-button";
 import { BrandMark } from "@/components/shared/brand-mark";
 import { PwaInstallPrompt } from "@/components/pwa/install-prompt";
 import { Home } from "@/components/shared/icons";
@@ -49,13 +50,16 @@ export default async function MaintenanceLayout({
               </div>
             </div>
           </Link>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-ink/60 hover:text-ink rounded-lg hover:bg-ink/5 transition-colors shrink-0"
-          >
-            <Home size={13} />
-            <span>Home</span>
-          </Link>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <AccountEmailButton variant="header" />
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-ink/60 hover:text-ink rounded-lg hover:bg-ink/5 transition-colors"
+            >
+              <Home size={13} />
+              <span>Home</span>
+            </Link>
+          </div>
         </div>
       </header>
 

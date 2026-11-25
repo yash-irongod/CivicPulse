@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { ResidentBottomNav } from "@/components/resident/nav";
 import { PwaInstallPrompt } from "@/components/pwa/install-prompt";
+import { AccountEmailButton } from "@/components/shared/account-email-button";
 import { CommunityShellProvider } from "@/components/shared/community-context";
 import { BrandMark } from "@/components/shared/brand-mark";
 import {
@@ -51,9 +52,7 @@ export default async function ResidentLayout({
                 </div>
               </div>
             </Link>
-            <span className="text-[11px] font-medium text-ink/40 shrink-0">
-              Nivas
-            </span>
+            <AccountEmailButton variant="header" />
           </div>
         </header>
 

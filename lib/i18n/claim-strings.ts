@@ -44,18 +44,18 @@ const en: Dictionary = {
   lang_switch_label: "Language",
   welcome_title: "Welcome, {name}",
   welcome_body_space:
-    "{community} has added you at {space}. Confirm below to start reporting problems.",
+    "{community} has added you at {space}. Confirm below to start using Nivas on this phone.",
   welcome_body:
-    "{community} has added you. Confirm below to start reporting problems.",
+    "{community} has added you. Confirm below to start using Nivas on this phone.",
   email_label: "Your email address",
   email_help:
     "We will send a sign-in link to this address. Open it on this phone.",
   send_link: "Send sign-in link",
   sending: "Sending link",
-  no_email_title: "No email address?",
+  no_email_title: "One-tap join",
   no_email_body:
-    "You can join without one. You will stay signed in on this phone only. If you lose access, ask whoever gave you this link for a new one.",
-  no_email_button: "Join without email",
+    "No password needed. You will stay signed in on this phone, and you can add an email later inside the app for backup alerts.",
+  no_email_button: "Join Nivas",
   joining: "Joining",
   sent_title: "Check your email",
   sent_body:
@@ -99,17 +99,17 @@ const hi: Dictionary = {
   lang_switch_label: "भाषा",
   welcome_title: "स्वागत है, {name}",
   welcome_body_space:
-    "{community} ने आपको {space} में जोड़ा है। समस्याएँ दर्ज करना शुरू करने के लिए नीचे पुष्टि करें।",
+    "{community} ने आपको {space} में जोड़ा है। इस फ़ोन पर Nivas शुरू करने के लिए नीचे पुष्टि करें।",
   welcome_body:
-    "{community} ने आपको जोड़ा है। समस्याएँ दर्ज करना शुरू करने के लिए नीचे पुष्टि करें।",
+    "{community} ने आपको जोड़ा है। इस फ़ोन पर Nivas शुरू करने के लिए नीचे पुष्टि करें।",
   email_label: "आपका ईमेल पता",
   email_help: "हम इस पते पर साइन-इन लिंक भेजेंगे। उसे इसी फ़ोन पर खोलें।",
   send_link: "साइन-इन लिंक भेजें",
   sending: "लिंक भेजा जा रहा है",
-  no_email_title: "ईमेल पता नहीं है?",
+  no_email_title: "एक टैप में जुड़ें",
   no_email_body:
-    "आप बिना ईमेल के भी जुड़ सकते हैं। आप सिर्फ़ इसी फ़ोन पर साइन-इन रहेंगे। पहुँच खो जाए तो जिसने आपको यह लिंक दिया उससे नया लिंक माँगें।",
-  no_email_button: "बिना ईमेल के जुड़ें",
+    "पासवर्ड की ज़रूरत नहीं। आप इसी फ़ोन पर साइन-इन रहेंगे, और बैकअप सूचनाओं के लिए बाद में ऐप में ईमेल जोड़ सकते हैं।",
+  no_email_button: "Nivas से जुड़ें",
   joining: "जोड़ा जा रहा है",
   sent_title: "अपना ईमेल देखें",
   sent_body:

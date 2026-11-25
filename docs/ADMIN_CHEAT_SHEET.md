@@ -45,7 +45,7 @@ Visit `https://your-domain/super-admin` (strictly private — never linked on pu
 
 ### Step 2B — Committee Admin First Setup (`/teams` & `/residents`)
 
-When the Chief Admin opens their link and completes **Join**, the built-in one-time **Setup Guide** walks them through:
+When the Chief Admin opens their invite link and taps **Join Nivas** (1-tap, zero passwords or email required up front), they land straight on `/dashboard`. From the sidebar or top header, any member can also open **Email alerts** anytime to optionally attach an email for backup alerts:
 
 1. **Broadcast Welcome Poster in Society Group Chats (`/residents` → Share Guide in GC)**
    - Tap **Share in Group** at the top of `/residents` to preview the 3-step Resident Welcome Poster alongside an editable society announcement caption.
@@ -65,14 +65,14 @@ When the Chief Admin opens their link and completes **Join**, the built-in one-t
 ## Part 3: Live Production Smoke Test Checklist (10 Minutes)
 
 1. **Create Test Society (`/super-admin`)** → verify starter teams/categories & Chief Admin link.
-2. **Claim Chief Admin + PWA Install** → claim link, test **Install App** & **Allow Alerts** → confirm redirect to `/dashboard` and one-time **Setup Guide** spotlight tour.
+2. **Claim Chief Admin + PWA Install** → tap **Join Nivas**, test **Install App** & **Allow Alerts** → confirm redirect to `/dashboard`, and optionally test **Email alerts** in the sidebar.
 3. **Broadcast Poster & Onboard Resident + Worker (`/residents`)** → test **Share Guide in GC**, add one **Maintenance Worker** assigned to Plumbing Team, and one **Resident** on two sessions.
 4. **Submit Photo + GPS Issue (`/report`)** → submit report, confirm category → confirm SLA deadline is calculated immediately (`sla_target_at` set, never `No SLA`).
 5. **Triage & Assign (`/incidents` & `/map`)** → verify pin on Society Map, set High severity & assign Plumbing Team.
 6. **Worker Resolution (`/maintenance`)** → worker opens `/maintenance` → **Start Work** → attach After-photo → **Submit Proof**.
 7. **Committee Approval (`/teams`)** → verify Before & After photos side-by-side → **Approve & Resolve**.
 8. **Resident Rating (`/notifications` / `/my-reports`)** → test **5 stars** auto-close and **2 stars** escalation.
-9. **Revoke & Lost-Device Recovery (`/residents`)** → verify **Revoke** immediately blocks worker/resident access, and **Reissue** on a new browser session/email transfers access cleanly.
+9. **Revoke & Lost-Device Recovery (`/residents`)** → verify **Revoke** immediately blocks worker/resident access, and **Reissue** on a new browser session transfers access cleanly.
 
 ---
 
